@@ -1,0 +1,16 @@
+{
+  "name": "grab-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "yt-dlp/ffmpeg backend that also serves the Grab PWA client.",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
