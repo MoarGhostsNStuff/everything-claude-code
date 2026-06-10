@@ -1,0 +1,17 @@
+# Render Blueprint for App+Web Media Grabber — enables the one-click
+# "Deploy to Render" button (https://render.com/deploy?repo=<this repo>).
+# Render reads this file at the repo root, builds the Docker image, and gives
+# you one HTTPS URL that serves BOTH the web app and the yt-dlp backend
+# (full streaming-site support). Add that URL to your Home Screen.
+services:
+  - type: web
+    name: app-web-media-grabber
+    runtime: docker
+    dockerfilePath: apps/media-grabber/server/Dockerfile
+    dockerContext: apps/media-grabber
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8080"
