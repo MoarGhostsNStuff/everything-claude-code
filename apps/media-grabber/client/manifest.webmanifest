@@ -1,6 +1,6 @@
 {
-  "name": "Grab — Media Downloader",
-  "short_name": "Grab",
+  "name": "App+Web Media Grabber",
+  "short_name": "Grabber",
   "description": "Paste a link, save video to Photos & Files or audio to Files.",
   "start_url": "./index.html",
   "scope": "./",

@@ -1,4 +1,4 @@
-name: Deploy Grab PWA to GitHub Pages
+name: Deploy App+Web Media Grabber to GitHub Pages
 
 # Publishes apps/media-grabber/client to GitHub Pages so it can be added to a
 # phone's Home Screen. Runs on pushes to main that touch the client.

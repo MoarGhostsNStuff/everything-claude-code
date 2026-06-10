@@ -368,7 +368,7 @@ app.use(express.static(CLIENT_DIR, { extensions: ['html'] }));
 app.get('*', (_req, res) => res.sendFile(path.join(CLIENT_DIR, 'index.html')));
 
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`Grab backend + client on http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`App+Web Media Grabber on http://localhost:${PORT}`));
 }
 
 module.exports = { app, _internal: { validateUrl, safeName, buildYtdlpArgs, contentTypeFor } };

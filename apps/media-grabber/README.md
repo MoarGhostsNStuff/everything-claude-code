@@ -1,4 +1,4 @@
-# Grab — Media Downloader (iOS PWA)
+# App+Web Media Grabber (iOS PWA)
 
 Paste a link, get the media onto your iPhone:
 
@@ -27,7 +27,7 @@ Built to match what paid downloaders (4K Video Downloader, SnapDownloader, …) 
 
 A web app can't write straight into Photos/Files, but the **Web Share API** hands
 a file to the native **share sheet**, which has *Save Video* (Photos) and *Save to
-Files* built in. Grab downloads the bytes, wraps them in a `File`, and calls
+Files* built in. The app downloads the bytes, wraps them in a `File`, and calls
 `navigator.share({ files: [...] })`.
 
 ```
@@ -38,27 +38,26 @@ link → preview → download (server) → transfer to phone → share sheet →
 
 ## Get it on your phone
 
-### Recommended: one URL, full power — deploy the backend (Render)
+### One-click, full power (recommended)
 
-The backend **also serves the client**, so a single HTTPS URL gives you the whole
-app *including* YouTube/streaming support.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/MoarGhostsNStuff/everything-claude-code)
 
-On [Render](https://render.com) (free tier works): **New → Web Service →** connect
-this repo, then set:
+One button gives you the **whole app — web UI *and* the yt-dlp backend** (full
+YouTube/TikTok/etc.) — at a single HTTPS URL. The root `render.yaml` blueprint
+tells Render exactly what to build, so there's nothing to configure.
 
-- **Root Directory:** `apps/media-grabber`
-- **Runtime:** Docker · **Dockerfile Path:** `server/Dockerfile`
-- **Health Check Path:** `/api/health`
-
-Create it, then:
-
-1. Open the `https://…onrender.com` URL it gives you, on your iPhone in Safari.
-2. **Share → Add to Home Screen.**
-3. Open ⚙︎ Settings once and set **Backend URL** to that same `onrender.com`
-   address (it's also where the app is served from), tap **Test**, **Done**.
+1. Click the button → sign in to Render (free) → **Apply** the blueprint.
+2. When it's live, open the `https://…onrender.com` URL on your iPhone in Safari.
+3. **Share → Add to Home Screen.** That icon is your app.
+4. First launch only: ⚙︎ Settings → **Backend URL** = that same `onrender.com`
+   address → **Test** → **Done**. (It's both the app *and* its backend.)
 
 > Free Render instances sleep when idle — the first request after a nap takes
-> ~30s to wake. Paid instances stay warm.
+> ~30s to wake. A paid instance stays warm.
+
+Manual alternative (no blueprint): Render → **New → Web Service →** this repo,
+Root Directory `apps/media-grabber`, Dockerfile `server/Dockerfile`, Health Check
+`/api/health`.
 
 Prefer Docker? From `apps/media-grabber/`:
 
@@ -81,10 +80,35 @@ backend. For streaming sites, set the Render Backend URL in ⚙︎ Settings.
 
 ---
 
+## Can "full mode" be a download-only app (no server)?
+
+Short answer: **no — full mode needs the tiny backend, and that's unavoidable.**
+
+"Full mode" means extracting YouTube/TikTok/etc., which is what `yt-dlp` + `ffmpeg`
+do. Those are native programs; they **cannot run inside an iPhone web app**, and a
+browser can't fetch from those sites directly (CORS + signed, throttled streams).
+So *something* has to run them — that's the backend.
+
+The ways to "install" an app on iOS don't remove that requirement:
+
+- **Add to Home Screen (this app):** real app icon, full-screen, offline shell —
+  but it's still web tech, so it can't bundle `yt-dlp`. It calls the backend.
+- **TestFlight / a native build:** needs an Apple Developer account ($99/yr), Xcode,
+  and review — *and the native app would still call a server for extraction.* More
+  work, same backend, not simpler.
+
+So the simplest "full app on your Home Screen" is exactly the one-click above:
+deploy the backend once (Render), Add to Home Screen, done. The backend stays
+yours and tiny; the icon on your phone is the whole experience. The only true
+**no-server** option is the GitHub Pages client, which handles **direct media
+links** on-device.
+
+---
+
 ## Using it
 
 1. Copy a link.
-2. Open Grab, tap **Paste**, choose **Auto / Video / Audio**, tap **Continue**.
+2. Open the app, tap **Paste**, choose **Auto / Video / Audio**, tap **Continue**.
 3. Review the preview, pick a quality/format, tap **Download**.
 4. Tap **Save to my phone** → *Save Video* (Photos) or *Save to Files*.
 
