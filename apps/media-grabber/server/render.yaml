@@ -1,6 +1,7 @@
-# One-click deploy on Render (https://render.com). Free tier works.
-# Render builds the Dockerfile and gives you an https URL to use as the
-# "Backend URL" in the Grab app's settings.
+# Render Blueprint (https://render.com). Free tier works.
+# Use this file as a Blueprint with Root Directory = apps/media-grabber, or just
+# create a Docker Web Service in the UI (Root Directory apps/media-grabber,
+# Dockerfile Path server/Dockerfile). Paths below are relative to apps/media-grabber.
 services:
   - type: web
     name: grab

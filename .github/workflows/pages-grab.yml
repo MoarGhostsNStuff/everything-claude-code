@@ -1,0 +1,51 @@
+name: Deploy Grab PWA to GitHub Pages
+
+# Publishes apps/media-grabber/client to GitHub Pages so it can be added to a
+# phone's Home Screen. Runs on pushes to main that touch the client.
+#
+# NOTE: a repo has a single Pages site. If this repo already served Pages from a
+# branch, the first run switches it to "GitHub Actions" as the source. To revert:
+# Settings → Pages → Source → back to your branch, and delete this workflow.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/media-grabber/client/**'
+      - '.github/workflows/pages-grab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel an in-progress publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Enable Pages automatically if it isn't already (no-op if it is).
+          enablement: true
+
+      - name: Upload client as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/media-grabber/client
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

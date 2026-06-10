@@ -1,90 +1,95 @@
 # Grab — Media Downloader (iOS PWA)
 
-Paste a link, get the file onto your iPhone:
+Paste a link, get the media onto your iPhone:
 
-- **Audio** → saved to **Files** (via the iOS share sheet → *Save to Files*)
+- **Audio** → saved to **Files** (share sheet → *Save to Files*)
 - **Video** → saved to **Photos** *and* **Files** (share sheet → *Save Video* / *Save to Files*)
 
-It's a **Progressive Web App** — no App Store, no developer account. Add it to
-your Home Screen once and it behaves like a native app.
+A **Progressive Web App** — no App Store, no developer account. Add it to your
+Home Screen once and it behaves like a native app.
 
-It works on two levels:
+## What makes it good
 
-1. **Direct media links** (`.mp4`, `.mov`, `.m4a`, `.mp3`, `.webm`, `.m3u8`, …)
-   are downloaded **entirely on-device** in Safari. No server needed.
-2. **Streaming sites** (YouTube, TikTok, Instagram, …) need extraction, which
-   browsers can't do alone. For those, the app calls an optional **backend**
-   that runs [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) + `ffmpeg` and streams
-   the finished file back. You point the app at your backend once in Settings.
+Built to match what paid downloaders (4K Video Downloader, SnapDownloader, …) do:
 
----
+- **Preview before you commit** — title, thumbnail, duration and uploader.
+- **Quality & format selection** — pick video resolution (Best / 1080 / 720 / …)
+  or audio format (M4A / MP3 / Opus / FLAC).
+- **Live progress** — real server-side **percentage, speed and ETA** over SSE,
+  then a second bar for the transfer to your phone.
+- **Rich files** — audio is tagged with **metadata and embedded cover art**;
+  video can **embed subtitles**.
+- **History** — recent grabs, one tap to re-run.
+- **Two engines** — direct links download on-device with no server; streaming
+  sites (YouTube, TikTok, …) use a yt-dlp backend.
 
 ## How saving works on iOS
 
-A web app can't write straight into Photos or Files, but the **Web Share API**
-can hand a file to the native **share sheet**, which has *Save Video* (Photos)
-and *Save to Files* built in. Grab downloads the bytes, wraps them in a `File`,
-and calls `navigator.share({ files: [...] })`. That's the streamlined,
-permission-free path — one tap to the exact destinations you asked for.
+A web app can't write straight into Photos/Files, but the **Web Share API** hands
+a file to the native **share sheet**, which has *Save Video* (Photos) and *Save to
+Files* built in. Grab downloads the bytes, wraps them in a `File`, and calls
+`navigator.share({ files: [...] })`.
 
 ```
-URL ─▶ download bytes ─▶ File ─▶ share sheet ─▶ Save Video / Save to Files
+link → preview → download (server) → transfer to phone → share sheet → Save Video / Save to Files
 ```
 
 ---
 
-## Quick start
+## Get it on your phone
 
-### Option A — direct links only (zero backend)
+### Recommended: one URL, full power — deploy the backend (Render)
 
-Host the `client/` folder as static files (GitHub Pages, Netlify, Cloudflare
-Pages, or even `npx serve client`). Open it in Safari on your iPhone → **Share**
-→ **Add to Home Screen**. Done. Leave the Backend URL blank in Settings.
+The backend **also serves the client**, so a single HTTPS URL gives you the whole
+app *including* YouTube/streaming support.
 
-> Must be served over **HTTPS** (or `localhost`) — the share sheet and service
-> worker require a secure context.
+On [Render](https://render.com) (free tier works): **New → Web Service →** connect
+this repo, then set:
 
-### Option B — full power (YouTube etc.) with the backend
+- **Root Directory:** `apps/media-grabber`
+- **Runtime:** Docker · **Dockerfile Path:** `server/Dockerfile`
+- **Health Check Path:** `/api/health`
 
-The backend also serves the client, so everything is same-origin.
+Create it, then:
 
-**Deploy with Docker / Render / Fly:**
+1. Open the `https://…onrender.com` URL it gives you, on your iPhone in Safari.
+2. **Share → Add to Home Screen.**
+3. Open ⚙︎ Settings once and set **Backend URL** to that same `onrender.com`
+   address (it's also where the app is served from), tap **Test**, **Done**.
+
+> Free Render instances sleep when idle — the first request after a nap takes
+> ~30s to wake. Paid instances stay warm.
+
+Prefer Docker? From `apps/media-grabber/`:
 
 ```bash
-# from apps/media-grabber/
 docker build -f server/Dockerfile -t grab .
-docker run -p 8080:8080 grab
-# open http://localhost:8080
+docker run -p 8080:8080 grab   # http://localhost:8080
 ```
 
-Or push to **Render** — the included `server/render.yaml` builds the Dockerfile
-and gives you an `https://…onrender.com` URL.
+### Client-only: GitHub Pages (direct links, on-device)
 
-**Run locally (Node), if yt-dlp + ffmpeg are already installed:**
+Merging this repo's PR to `main` runs `.github/workflows/pages-grab.yml`, which
+publishes the client to **GitHub Pages**:
 
-```bash
-cd server
-npm install
-npm start            # http://localhost:8080
+```
+https://moarghostsnstuff.github.io/everything-claude-code/
 ```
 
-Then in the app: open **⚙︎ Settings**, set **Backend URL** to your server's
-`https://` address, tap **Test**, then **Done**.
+Add that to your Home Screen for instant **direct-link** downloads with no
+backend. For streaming sites, set the Render Backend URL in ⚙︎ Settings.
 
 ---
 
 ## Using it
 
-1. Copy a link (Share → Copy, or copy the address).
-2. Open Grab, tap **Paste**.
-3. Pick **Auto**, **Video**, or **Audio**.
-4. Tap **Download**, then **Save** → choose *Save Video* (Photos) or
-   *Save to Files*.
+1. Copy a link.
+2. Open Grab, tap **Paste**, choose **Auto / Video / Audio**, tap **Continue**.
+3. Review the preview, pick a quality/format, tap **Download**.
+4. Tap **Save to my phone** → *Save Video* (Photos) or *Save to Files*.
 
-**Share-sheet shortcut:** because the PWA registers a `share_target`, once it's
-on your Home Screen you can sometimes share a URL straight into it. You can also
-deep-link: `https://your-host/?url=https://example.com/video.mp4` auto-starts the
-download.
+**Deep link / share target:** `…/?url=https://example.com/video.mp4` auto-starts a
+download, and the installed app registers as a share target for links.
 
 ---
 
@@ -94,42 +99,50 @@ download.
 apps/media-grabber/
 ├── client/                 # the PWA (static, deployable on its own)
 │   ├── index.html
-│   ├── app.js              # download + share-sheet logic
+│   ├── app.js              # preview, jobs, SSE progress, share-to-save
 │   ├── styles.css
 │   ├── manifest.webmanifest
 │   ├── sw.js               # offline app shell
 │   └── icons/              # generated PNG icons
-├── server/                 # optional yt-dlp/ffmpeg backend (also serves client)
+├── server/                 # yt-dlp/ffmpeg backend (also serves the client)
 │   ├── server.js
+│   ├── server.test.js      # node --test
 │   ├── package.json
-│   ├── Dockerfile
+│   ├── Dockerfile          # node + ffmpeg + atomicparsley + yt-dlp
 │   └── render.yaml
-└── scripts/
-    └── gen-icons.js        # dependency-free PNG icon generator
+└── scripts/gen-icons.js    # dependency-free PNG icon generator
 ```
 
-Regenerate icons with `node scripts/gen-icons.js`.
+Run the backend tests with `cd server && npm test`. Regenerate icons with
+`node scripts/gen-icons.js`.
 
 ---
 
-## Endpoints (backend)
+## API (backend)
 
-| Route                         | Purpose                                          |
-|-------------------------------|--------------------------------------------------|
-| `GET /api/health`             | Liveness + yt-dlp version                        |
-| `GET /api/info?url=`          | Title / whether the link is a direct file        |
-| `GET /api/proxy?url=`         | Stream a direct link through the server (CORS)    |
-| `GET /api/grab?url=&kind=&afmt=` | Run yt-dlp, stream the finished file           |
+| Route                        | Purpose                                                   |
+|------------------------------|-----------------------------------------------------------|
+| `GET /api/health`            | Liveness + yt-dlp / ffmpeg versions                       |
+| `GET /api/info?url=`         | Preview: title, thumbnail, duration, uploader, qualities  |
+| `POST /api/jobs`             | Start a download → `{ id }` (body: url, kind, quality, …) |
+| `GET /api/jobs/:id/events`   | SSE stream: status, percent, speed, eta, stage            |
+| `GET /api/jobs/:id/file`     | Stream the finished file, then clean up                   |
+| `DELETE /api/jobs/:id`       | Cancel + clean up                                         |
 
-`kind` is `video` or `audio`; `afmt` is `m4a` \| `mp3` \| `opus`.
+Env: `PORT`, `YTDLP_PATH`, `FFMPEG_PATH`, `MAX_ACTIVE_JOBS`, `MAX_BYTES`,
+`JOB_TIMEOUT_MS`, `ALLOWED_ORIGINS` (CORS allowlist), `GRAB_ALLOW_LOOPBACK` (tests).
 
 ---
 
-## Notes & limits
+## Security & limits
 
-- **Memory:** the client buffers the file before invoking the share sheet, so
-  very large videos depend on the device's available memory. Fine for typical
-  clips; multi-GB movies may struggle on older phones.
-- **Private/loopback hosts** are rejected by the backend to avoid SSRF.
-- **Legal:** only download content you own or are permitted to. Downloading from
-  some sites violates their Terms of Service — that's on you to respect.
+- **SSRF defense:** private/loopback/link-local hosts are rejected, and redirects
+  are followed manually and re-validated at every hop (blocks 30x → metadata IP).
+- **Command safety:** the URL is always passed after `--`; quality/format/kind are
+  allowlisted, so no option injection into yt-dlp.
+- **DoS guards:** capped concurrent jobs, JSON body limit, per-job timeout and a
+  TTL sweep that deletes stale temp files.
+- **Memory:** the client buffers a file before invoking the share sheet, so very
+  large videos depend on device memory (fine for typical clips).
+- **Legal:** download only content you own or are permitted to. Some sites'
+  Terms of Service prohibit downloading — that's on you to respect.

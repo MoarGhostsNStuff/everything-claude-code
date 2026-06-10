@@ -1,9 +1,9 @@
 # Grab backend: Node + yt-dlp + ffmpeg, serving the PWA client too.
 FROM node:20-slim
 
-# ffmpeg (for merging/extracting) and yt-dlp (latest release binary).
+# ffmpeg (merge/extract), AtomicParsley (embed cover art in m4a), yt-dlp binary.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl python3 \
+  && apt-get install -y --no-install-recommends ffmpeg atomicparsley ca-certificates curl python3 \
   && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
   && chmod a+rx /usr/local/bin/yt-dlp \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
