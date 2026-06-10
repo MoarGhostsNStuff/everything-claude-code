@@ -1,0 +1,15 @@
+# Render Blueprint (https://render.com). Free tier works.
+# Use this file as a Blueprint with Root Directory = apps/media-grabber, or just
+# create a Docker Web Service in the UI (Root Directory apps/media-grabber,
+# Dockerfile Path server/Dockerfile). Paths below are relative to apps/media-grabber.
+services:
+  - type: web
+    name: grab
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "8080"

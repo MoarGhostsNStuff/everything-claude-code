@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Grab" />
+  <meta name="description" content="Download video & audio from any link. Save video to Photos & Files, audio to Files." />
+  <title>Grab — Media Downloader</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="head">
+      <div class="logo" aria-hidden="true">⤓</div>
+      <h1>Grab</h1>
+      <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙︎</button>
+    </header>
+
+    <form id="grabForm" class="card" autocomplete="off">
+      <label class="field">
+        <span class="label">Paste a link</span>
+        <div class="input-row">
+          <input id="url" type="url" inputmode="url" placeholder="https://…" enterkeyhint="go" required />
+          <button id="pasteBtn" type="button" class="ghost" aria-label="Paste from clipboard">Paste</button>
+        </div>
+      </label>
+
+      <div class="seg" role="radiogroup" aria-label="What to download">
+        <input type="radio" name="mode" id="mode-auto" value="auto" checked />
+        <label for="mode-auto">Auto</label>
+        <input type="radio" name="mode" id="mode-video" value="video" />
+        <label for="mode-video">Video</label>
+        <input type="radio" name="mode" id="mode-audio" value="audio" />
+        <label for="mode-audio">Audio</label>
+      </div>
+
+      <button id="grabBtn" type="submit" class="primary">Continue</button>
+    </form>
+
+    <!-- Preview + options (backend mode) -->
+    <section id="preview" class="card preview" hidden>
+      <div class="preview-head">
+        <img id="thumb" class="thumb" alt="" hidden />
+        <div class="preview-info">
+          <p id="previewTitle" class="preview-title">…</p>
+          <p id="previewMeta" class="preview-meta"></p>
+        </div>
+      </div>
+
+      <div id="qualityWrap" class="field" hidden>
+        <span class="label">Quality</span>
+        <div id="qualityRow" class="chips" role="radiogroup" aria-label="Quality"></div>
+      </div>
+
+      <div id="audioFmtWrap" class="field" hidden>
+        <span class="label">Audio format</span>
+        <div id="audioFmtRow" class="chips" role="radiogroup" aria-label="Audio format"></div>
+      </div>
+
+      <button id="downloadBtn" class="primary">Download</button>
+    </section>
+
+    <!-- Progress -->
+    <section id="status" class="card status" hidden>
+      <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+      <p id="statusText" class="status-text">Working…</p>
+      <p id="statusSub" class="status-sub"></p>
+      <button id="cancelBtn" type="button" class="ghost danger">Cancel</button>
+    </section>
+
+    <!-- Result -->
+    <section id="result" class="card result" hidden>
+      <div class="result-meta">
+        <div id="resultIcon" class="result-icon">🎞️</div>
+        <div class="result-info">
+          <p id="resultName" class="result-name">file</p>
+          <p id="resultHint" class="result-hint"></p>
+        </div>
+      </div>
+      <button id="saveBtn" class="primary">Save to my phone</button>
+      <a id="fallbackLink" class="ghost" hidden download>Download instead</a>
+      <button id="againBtn" type="button" class="ghost">Grab another</button>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+
+    <!-- History -->
+    <section id="historyWrap" class="history" hidden>
+      <div class="history-head">
+        <span class="label">Recent</span>
+        <button id="clearHistory" type="button" class="link-btn">Clear</button>
+      </div>
+      <ul id="historyList" class="history-list"></ul>
+    </section>
+
+    <footer class="foot">
+      <p>Audio → <b>Files</b>. Video → <b>Photos</b> &amp; <b>Files</b> via the share sheet.</p>
+    </footer>
+  </main>
+
+  <dialog id="settings" class="settings">
+    <form method="dialog" class="settings-form">
+      <h2>Settings</h2>
+      <label class="field">
+        <span class="label">Backend URL (for YouTube &amp; other sites)</span>
+        <input id="backendUrl" type="url" inputmode="url" placeholder="https://your-server.example.com" />
+        <small class="hint">Leave blank to handle only direct media links on-device. A yt-dlp backend is required for streaming sites. <span id="backendBadge"></span></small>
+      </label>
+      <label class="field check">
+        <input id="embedSubs" type="checkbox" />
+        <span>Embed English subtitles in videos (when available)</span>
+      </label>
+      <div class="settings-actions">
+        <button id="testBackend" type="button" class="ghost">Test</button>
+        <button value="save" class="primary">Done</button>
+      </div>
+      <p id="settingsMsg" class="hint"></p>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
