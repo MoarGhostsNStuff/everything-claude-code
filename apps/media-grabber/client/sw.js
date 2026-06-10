@@ -2,10 +2,11 @@
  * Caches the app shell so the PWA opens instantly and works offline.
  * Media requests (cross-origin downloads / backend) are never cached. */
 
-const CACHE = 'grab-shell-v1';
+const CACHE = 'grab-shell-v2';
 const SHELL = [
   './',
   './index.html',
+  './launcher.html',
   './app.js',
   './styles.css',
   './manifest.webmanifest',

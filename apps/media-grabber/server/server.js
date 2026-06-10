@@ -368,7 +368,8 @@ app.use(express.static(CLIENT_DIR, { extensions: ['html'] }));
 app.get('*', (_req, res) => res.sendFile(path.join(CLIENT_DIR, 'index.html')));
 
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`App+Web Media Grabber on http://localhost:${PORT}`));
+  // Bind 0.0.0.0 so the container is reachable on PaaS routers (Render, Fly, …).
+  app.listen(PORT, '0.0.0.0', () => console.log(`App+Web Media Grabber on http://0.0.0.0:${PORT}`));
 }
 
 module.exports = { app, _internal: { validateUrl, safeName, buildYtdlpArgs, contentTypeFor } };

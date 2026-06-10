@@ -12,6 +12,6 @@ services:
     plan: free
     healthCheckPath: /api/health
     autoDeploy: true
-    envVars:
-      - key: PORT
-        value: "8080"
+    # NOTE: do NOT set PORT here. Render injects its own PORT and the server
+    # reads process.env.PORT. Hardcoding it makes the app bind the wrong port,
+    # so Render's router can't reach it and returns "Bad gateway" (502).
