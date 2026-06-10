@@ -185,6 +185,7 @@ button { cursor: pointer; font-family: inherit; }
 }
 
 .foot { text-align: center; color: var(--muted); font-size: 13px; }
+.foot-link { color: var(--accent); text-decoration: none; font-weight: 600; }
 .foot b { color: var(--text); }
 
 .settings { border: none; border-radius: 18px; padding: 0; background: transparent; }
