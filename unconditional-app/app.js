@@ -435,7 +435,7 @@ function renderMedications() {
         </div>
         <div class="med-time">${nextDoseLabel(med, takenToday)}</div>
         <div class="med-actions">
-          <button class="med-action-btn" onclick="openEditMed(${med.id})">✏\u{FE0F}</button>
+          <button class="med-action-btn" onclick="openEditMed(${med.id})">\u{270F}\u{FE0F}</button>
           <button class="med-action-btn" onclick="deleteMed(${med.id})">\u{1F5D1}</button>
         </div>
       </div>`;
