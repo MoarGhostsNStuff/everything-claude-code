@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     const splash = document.getElementById('splash');
     if (splash) splash.classList.add('hide');
-  }, 2000);
+  }, 6200);
 });
 
 function loadState() {
@@ -111,6 +111,7 @@ function requestNotificationPermission() {
 }
 
 function showNotification(title, body, data) {
+  let sentNative = false;
   if ('Notification' in window && Notification.permission === 'granted') {
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
       navigator.serviceWorker.ready.then((reg) => {
@@ -123,11 +124,15 @@ function showNotification(title, body, data) {
           requireInteraction: true,
         });
       });
+      sentNative = true;
     } else {
       new Notification(title, { body, icon: '/icons/icon-192.png' });
+      sentNative = true;
     }
   }
-  showPopupPrompt(title, body, data);
+  if (!sentNative) {
+    showPopupPrompt(title, body, data);
+  }
 }
 
 /* ── Navigation ── */
@@ -157,6 +162,40 @@ function renderAll() {
   renderSleepStatus();
   renderActivityLog();
   renderSettings();
+  renderHomeStats();
+}
+
+function renderHomeStats() {
+  const today = todayKey();
+  let totalDoses = 0, takenDoses = 0;
+  APP.medications.filter((m) => m.active).forEach((m) => {
+    totalDoses += m.times.length;
+    takenDoses += (m.taken[today] || []).length;
+  });
+  const medCount = document.getElementById('home-med-count');
+  if (medCount) medCount.textContent = `${takenDoses}/${totalDoses}`;
+  const sleepScore = document.getElementById('home-sleep-score');
+  if (sleepScore) sleepScore.textContent = `${APP.sleepPrediction.confidence || 0}%`;
+  const checkins = document.getElementById('home-checkins');
+  if (checkins) {
+    const todayCheckins = APP.activityLog.filter((e) => e.time.startsWith(today) && e.text.includes('check-in')).length;
+    checkins.textContent = todayCheckins;
+  }
+  const streak = document.getElementById('home-streak');
+  if (streak) {
+    let days = 0;
+    const d = new Date();
+    while (days < 365) {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const hadActivity = APP.activityLog.some((e) => e.time.startsWith(key));
+      if (!hadActivity && days > 0) break;
+      if (hadActivity) days++;
+      d.setDate(d.getDate() - 1);
+    }
+    streak.textContent = days;
+  }
+  const wellnessHappiness = document.getElementById('wellness-happiness');
+  if (wellnessHappiness) wellnessHappiness.textContent = APP.happiness.toLocaleString();
 }
 
 function renderHappiness() {
@@ -210,6 +249,7 @@ function renderMedications() {
 function toggleMedTaken(id) {
   const med = APP.medications.find((m) => m.id === id);
   if (!med) return;
+  if (med.times.length === 0) return;
   const today = todayKey();
   if (!med.taken[today]) med.taken[today] = [];
   const now = currentTimeStr();
@@ -321,7 +361,7 @@ function startMotionDetection() {
   if ('DeviceMotionEvent' in window) {
     window.addEventListener('devicemotion', handleMotionEvent, { passive: true });
   }
-  setInterval(analyzeSleepLikelihood, 60000);
+  APP.sleepIntervalId = setInterval(analyzeSleepLikelihood, 60000);
 }
 
 function handleMotionEvent(e) {
@@ -329,7 +369,7 @@ function handleMotionEvent(e) {
   if (!acc) return;
   const magnitude = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
   APP.motionData.push({ t: Date.now(), m: magnitude });
-  if (APP.motionData.length > 3600) APP.motionData = APP.motionData.slice(-1800);
+  if (APP.motionData.length > 3600) APP.motionData = APP.motionData.slice(-3600);
 }
 
 function analyzeSleepLikelihood() {
@@ -506,7 +546,7 @@ function startCountdown(minutes, reason) {
     if (Date.now() >= APP.countdownEnd) {
       clearInterval(APP.countdownTimer);
       APP.countdownTimer = null;
-      onCountdownComplete(reason);
+      onCountdownComplete(APP.countdownReason);
     }
     renderCountdown();
   }, 1000);
@@ -580,6 +620,10 @@ async function startAudioMonitor() {
 }
 
 function stopAudioMonitor() {
+  if (APP.audioRafId) {
+    cancelAnimationFrame(APP.audioRafId);
+    APP.audioRafId = null;
+  }
   if (APP.mediaStream) {
     APP.mediaStream.getTracks().forEach((t) => t.stop());
     APP.mediaStream = null;
@@ -588,6 +632,7 @@ function stopAudioMonitor() {
     APP.audioContext.close();
     APP.audioContext = null;
   }
+  APP.analyser = null;
   APP.audioMonitorActive = false;
   updateAudioDot(false);
   logActivity('Audio environment monitor stopped');
@@ -602,7 +647,7 @@ function monitorAudioLevels() {
   if (avg > 100 && peak > 180) {
     handleLoudDetection(avg, peak);
   }
-  requestAnimationFrame(monitorAudioLevels);
+  APP.audioRafId = requestAnimationFrame(monitorAudioLevels);
 }
 
 function handleLoudDetection(avg, peak) {
@@ -632,8 +677,10 @@ function updateAudioDot(active) {
 /* ── SMS ── */
 function sendSmsViaLink(number, message) {
   const encoded = encodeURIComponent(message);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const separator = isIOS ? '&' : '?';
   const link = document.createElement('a');
-  link.href = `sms:${number}&body=${encoded}`;
+  link.href = `sms:${number}${separator}body=${encoded}`;
   link.style.display = 'none';
   document.body.appendChild(link);
   link.click();
@@ -649,22 +696,28 @@ function startScheduledChecks() {
 
 function checkScheduledEvents() {
   const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
 
   if (APP.settings.mentalHealthCheckins) {
-    if (timeStr === '10:00' || timeStr === '19:00' || timeStr === '00:00') {
-      const lastGigi = DB.load('lastGigiCheck', '');
-      if (lastGigi !== todayKey() + timeStr) {
-        DB.save('lastGigiCheck', todayKey() + timeStr);
-        triggerGigiCheck();
+    const checkinMinutes = [600, 1140, 0]; // 10:00, 19:00, 00:00
+    checkinMinutes.forEach((targetMin) => {
+      const diff = Math.abs(nowMin - targetMin);
+      if (diff <= 1 || (targetMin === 0 && nowMin >= 1439)) {
+        const checkinKey = todayKey() + ':' + targetMin;
+        const lastGigi = DB.load('lastGigiCheck', '');
+        if (lastGigi !== checkinKey) {
+          DB.save('lastGigiCheck', checkinKey);
+          triggerGigiCheck();
+        }
       }
-    }
+    });
   }
 
   if (APP.settings.medReminders) {
     APP.medications.filter((m) => m.active).forEach((med) => {
       med.times.forEach((t) => {
-        if (t === timeStr) {
+        const targetMin = timeToMin(t);
+        if (Math.abs(nowMin - targetMin) <= 1) {
           const today = todayKey();
           if (!(med.taken[today] || []).includes(t)) {
             showNotification('Medication Reminder', `Time to take ${med.name} (${med.dosage})`, { type: 'med-reminder', medId: med.id });
@@ -703,7 +756,22 @@ function requestMotionPermission() {
 }
 
 /* ── Pop-up Prompt System ── */
+const promptQueue = [];
+
 function showPopupPrompt(title, body, data) {
+  const overlay = document.getElementById('prompt-overlay');
+  if (!overlay) return;
+
+  // Queue this prompt if another is already visible
+  if (overlay.classList.contains('show')) {
+    promptQueue.push({ title, body, data });
+    return;
+  }
+
+  displayPrompt(title, body, data);
+}
+
+function displayPrompt(title, body, data) {
   const overlay = document.getElementById('prompt-overlay');
   const container = document.getElementById('prompt-container');
   if (!overlay || !container) return;
@@ -716,14 +784,14 @@ function showPopupPrompt(title, body, data) {
       if (c.subChoices) {
         html += `<div style="margin-bottom:12px"><div style="font-size:0.9rem;margin-bottom:8px;color:var(--text-secondary)">${escHtml(c.label)}</div><div class="btn-group">`;
         c.subChoices.forEach((sc) => {
-          html += `<button class="btn btn-secondary" onclick="handlePromptResponse('${data.type}','${c.value}','${sc}')">${escHtml(sc)}</button>`;
+          html += `<button class="btn btn-secondary" onclick="handlePromptResponse('${escAttr(data.type)}','${escAttr(c.value)}','${escAttr(sc)}')">${escHtml(sc)}</button>`;
         });
         html += '</div></div>';
       } else if (c.input) {
-        html += `<button class="btn btn-secondary" onclick="showTimeInput('${data.type}','${c.value}')">${escHtml(c.label)}</button>`;
+        html += `<button class="btn btn-secondary" onclick="showTimeInput('${escAttr(data.type)}','${escAttr(c.value)}')">${escHtml(c.label)}</button>`;
       } else {
         const btnClass = c.value === 'completed' ? 'btn-love' : 'btn-secondary';
-        html += `<button class="btn ${btnClass}" onclick="handlePromptResponse('${data.type}','${c.value}')">${escHtml(c.label)}</button>`;
+        html += `<button class="btn ${btnClass}" onclick="handlePromptResponse('${escAttr(data.type)}','${escAttr(c.value)}')">${escHtml(c.label)}</button>`;
       }
     });
     html += '</div>';
@@ -739,13 +807,19 @@ function showTimeInput(type, value) {
     <div class="prompt-card">
       <div class="prompt-text">How many minutes until you sleep?</div>
       <div class="input-group"><input id="sleep-minutes" type="number" class="input-field" placeholder="e.g. 30" min="1" max="480" inputmode="numeric"></div>
-      <button class="btn btn-primary" onclick="handlePromptResponse('${type}','${value}',document.getElementById('sleep-minutes').value)">Start Countdown</button>
+      <button class="btn btn-primary" onclick="handlePromptResponse('${escAttr(type)}','${escAttr(value)}',document.getElementById('sleep-minutes').value)">Start Countdown</button>
     </div>`;
 }
 
 function handlePromptResponse(type, value, extra) {
   const overlay = document.getElementById('prompt-overlay');
   if (overlay) overlay.classList.remove('show');
+
+  // Show next queued prompt after a brief delay for the dismiss animation
+  if (promptQueue.length > 0) {
+    const next = promptQueue.shift();
+    setTimeout(() => displayPrompt(next.title, next.body, next.data), 350);
+  }
 
   switch (type) {
     case 'sleep-check':
@@ -892,7 +966,7 @@ function escHtml(s) {
 }
 
 function escAttr(s) {
-  return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /* ── Manual triggers for testing ── */
@@ -902,6 +976,11 @@ function manualBedtimeCheck() { triggerBedtimeAngerCheck(); }
 function manualLoveReminder() { triggerBedtimeRoutine(); }
 function clearAllData() {
   if (!confirm('This will clear all app data. Are you sure?')) return;
-  localStorage.clear();
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('uc_')) keysToRemove.push(key);
+  }
+  keysToRemove.forEach((k) => localStorage.removeItem(k));
   location.reload();
 }
