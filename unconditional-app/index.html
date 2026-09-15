@@ -116,9 +116,9 @@
     <div id="page-home" class="tab-page active">
       <div class="section-title">Quick Actions</div>
       <div class="quick-actions">
-        <div class="quick-action" onclick="manualSleepPrompt()">
-          <div class="quick-action-icon">&#x1F634;</div>
-          <div class="quick-action-label">Sleep Check</div>
+        <div class="quick-action" onclick="sendHugRequest()">
+          <div class="quick-action-icon">&#x1FAC2;</div>
+          <div class="quick-action-label">Hug Request</div>
         </div>
         <div class="quick-action" onclick="manualLoveReminder()">
           <div class="quick-action-icon">&#x2764;&#xFE0F;</div>
@@ -128,10 +128,23 @@
           <div class="quick-action-icon">&#x1F49C;</div>
           <div class="quick-action-label">Gigi Check</div>
         </div>
-        <div class="quick-action" onclick="manualBedtimeCheck()">
-          <div class="quick-action-icon">&#x1F31C;</div>
-          <div class="quick-action-label">Bedtime Check</div>
+        <div class="quick-action" onclick="openMoodJournal()">
+          <div class="quick-action-icon">&#x1F4D3;</div>
+          <div class="quick-action-label">Mood Journal</div>
         </div>
+        <div class="quick-action" onclick="startBreathingExercise()">
+          <div class="quick-action-icon">&#x1F32C;&#xFE0F;</div>
+          <div class="quick-action-label">Breathe</div>
+        </div>
+        <div class="quick-action" onclick="openGratitudePrompt()">
+          <div class="quick-action-icon">&#x1F64F;</div>
+          <div class="quick-action-label">Gratitude</div>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      <div class="card streak-card" style="margin-top:12px">
+        <div id="streak-display" style="font-size:1.1rem;font-weight:700;text-align:center"></div>
       </div>
 
       <div class="section-title">Today's Stats</div>
@@ -287,6 +300,88 @@
         </div>
       </div>
 
+      <!-- Hug Request -->
+      <div class="card hug-card">
+        <div class="card-header">
+          <div class="card-title">&#x1FAC2; Hug Request</div>
+          <button class="btn btn-sm btn-secondary" onclick="openHugSettings()">&#x2699;&#xFE0F;</button>
+        </div>
+        <div class="card-subtitle">Send a loving hug request text. Contact: <span id="hug-contact-display">No contact set</span></div>
+        <div class="btn-group">
+          <button class="btn btn-love btn-sm" onclick="sendHugRequest()">Send Hug Request</button>
+        </div>
+      </div>
+
+      <!-- Breathing Exercise -->
+      <div id="breathing-section" style="display:none">
+        <div class="card breathing-card">
+          <div style="text-align:center">
+            <div id="breathing-circle" class="breathing-circle"></div>
+            <div id="breathing-label" style="font-size:1.3rem;font-weight:700;margin-top:16px">Breathe In</div>
+            <div id="breathing-counter" class="card-subtitle" style="margin-top:8px">Cycle 1 of 3</div>
+            <button class="btn btn-secondary btn-sm" onclick="stopBreathing()" style="margin-top:12px">Stop</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mood Journal -->
+      <div class="section-title">Mood Journal</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F4D3; Recent Moods</div>
+          <button class="btn btn-sm btn-primary" onclick="openMoodJournal()">+ Entry</button>
+        </div>
+        <div id="mood-chart" style="margin:8px 0"></div>
+        <div id="mood-journal-list"></div>
+      </div>
+
+      <!-- Gratitude -->
+      <div class="section-title">Gratitude</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F64F; Daily Gratitude</div>
+          <button class="btn btn-sm btn-primary" onclick="openGratitudePrompt()">+ Add</button>
+        </div>
+        <div id="gratitude-list"></div>
+      </div>
+
+      <!-- Photo Memories -->
+      <div class="section-title">Photo Memories</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F4F7; Our Memories</div>
+          <button class="btn btn-sm btn-primary" onclick="openPhotoMemory()">+ Photo</button>
+        </div>
+        <div id="photo-memories"></div>
+      </div>
+
+      <!-- Love Language -->
+      <div class="section-title">Love Language</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F495; Love Language</div>
+        </div>
+        <div class="card-subtitle">Discover your love language and get personalized prompts</div>
+        <div class="btn-group">
+          <button class="btn btn-love btn-sm" onclick="openLoveLanguageQuiz()">Take Quiz</button>
+        </div>
+      </div>
+
+      <!-- Weekly Report Card -->
+      <div class="section-title">Weekly Report</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F4CA; This Week</div>
+        </div>
+        <div id="weekly-report"></div>
+      </div>
+
+      <!-- Badges -->
+      <div class="section-title">Badges &amp; Milestones</div>
+      <div class="card">
+        <div id="badges-list"></div>
+      </div>
+
       <div class="section-title">Happiness History</div>
       <div class="card">
         <div style="text-align:center;padding:12px">
@@ -370,6 +465,19 @@
             <div class="toggle-desc">Bedtime text to (206) number</div>
           </div>
           <div class="toggle" id="toggle-love-contract" onclick="toggleSetting('loveContractReminder','toggle-love-contract')"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Appearance</div>
+      <div class="card">
+        <button class="btn btn-secondary" id="theme-toggle-btn" onclick="toggleTheme()" style="margin-bottom:12px">&#x2600;&#xFE0F; Light Mode</button>
+        <div class="card-subtitle" style="margin-bottom:8px">Accent Color</div>
+        <div class="accent-picker">
+          <button class="accent-swatch" style="background:#7B2FBE" onclick="setAccentColor('purple')"></button>
+          <button class="accent-swatch" style="background:#2F7BBE" onclick="setAccentColor('blue')"></button>
+          <button class="accent-swatch" style="background:#2FBE7B" onclick="setAccentColor('green')"></button>
+          <button class="accent-swatch" style="background:#BE2F4E" onclick="setAccentColor('red')"></button>
+          <button class="accent-swatch" style="background:#BE2F9B" onclick="setAccentColor('pink')"></button>
         </div>
       </div>
 

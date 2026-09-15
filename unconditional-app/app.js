@@ -175,6 +175,9 @@ const APP = {
   medications: [],
   sleepLog: [],
   activityLog: [],
+  moodJournal: [],
+  gratitudes: [],
+  badges: [],
   settings: {},
   sleepPrediction: { confidence: 0, likelySleepingSoon: false },
   motionData: [],
@@ -187,6 +190,8 @@ const APP = {
   currentTab: 'home',
   modalStack: [],
 };
+
+const DEFAULT_HUG_MESSAGE = "Being in love and with your soulmate at 90 is a lot better than being alone with your anger or ego..I'm asking you for a hug now, please";
 
 const CONTACTS = {
   primary: '3314571282',
@@ -211,6 +216,9 @@ const DB = {
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', async () => {
   loadState();
+  applyTheme(APP.theme);
+  applyAccent(APP.accentColor);
+  updateStreak();
   renderAll();
   setupNavigation();
   setupServiceWorker();
@@ -250,6 +258,16 @@ function loadState() {
   APP.activityLog = DB.load('activityLog', []);
   APP.settings = DB.load('settings', getDefaultSettings());
   APP.sleepPrediction = DB.load('sleepPrediction', { confidence: 5, likelySleepingSoon: false, dataPoints: 0 });
+  APP.moodJournal = DB.load('moodJournal', []);
+  APP.gratitudes = DB.load('gratitudes', []);
+  APP.badges = DB.load('badges', []);
+  APP.hugContact = DB.load('hugContact', '');
+  APP.hugMessage = DB.load('hugMessage', DEFAULT_HUG_MESSAGE);
+  APP.loveLanguage = DB.load('loveLanguage', null);
+  APP.streakData = DB.load('streakData', { currentStreak: 0, longestStreak: 0, lastActiveDate: '' });
+  APP.theme = DB.load('theme', 'dark');
+  APP.accentColor = DB.load('accentColor', 'purple');
+  APP.breathingActive = false;
 }
 
 function saveState() {
@@ -259,6 +277,15 @@ function saveState() {
   DB.save('activityLog', APP.activityLog);
   DB.save('settings', APP.settings);
   DB.save('sleepPrediction', APP.sleepPrediction);
+  DB.save('moodJournal', APP.moodJournal);
+  DB.save('gratitudes', APP.gratitudes);
+  DB.save('badges', APP.badges);
+  DB.save('hugContact', APP.hugContact);
+  DB.save('hugMessage', APP.hugMessage);
+  DB.save('loveLanguage', APP.loveLanguage);
+  DB.save('streakData', APP.streakData);
+  DB.save('theme', APP.theme);
+  DB.save('accentColor', APP.accentColor);
 }
 
 function getDefaultMedications() {
@@ -359,6 +386,12 @@ function renderAll() {
   renderActivityLog();
   renderSettings();
   renderHomeStats();
+  renderMoodJournal();
+  renderGratitudes();
+  renderBadges();
+  renderWeeklyReport();
+  renderStreakDisplay();
+  renderHugContact();
 }
 
 function renderHomeStats() {
@@ -1179,11 +1212,551 @@ function escAttr(s) {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/* ── Mood Journal ── */
+function openMoodJournal() {
+  const moods = [
+    { emoji: '\u{1F60A}', label: 'Happy', value: 'happy' },
+    { emoji: '\u{1F60C}', label: 'Calm', value: 'calm' },
+    { emoji: '\u{1F614}', label: 'Sad', value: 'sad' },
+    { emoji: '\u{1F620}', label: 'Angry', value: 'angry' },
+    { emoji: '\u{1F630}', label: 'Anxious', value: 'anxious' },
+    { emoji: '\u{1F970}', label: 'Loved', value: 'loved' },
+  ];
+  const moodBtns = moods.map((m) =>
+    `<button class="mood-btn" onclick="selectMood('${m.value}','${m.emoji}')" data-mood="${m.value}"><span style="font-size:1.8rem">${m.emoji}</span><br><span style="font-size:0.75rem">${escHtml(m.label)}</span></button>`
+  ).join('');
+  showModal('How are you feeling?', `
+    <div class="mood-grid">${moodBtns}</div>
+    <div class="input-group"><label>What's on your mind? (optional)</label><textarea id="mood-note" class="input-field" rows="3" placeholder="Journal your thoughts..."></textarea></div>
+    <button class="btn btn-primary" id="save-mood-btn" onclick="saveMoodEntry()" disabled>Save Entry</button>
+  `);
+}
+
+let selectedMood = null;
+function selectMood(value, emoji) {
+  selectedMood = { value, emoji };
+  document.querySelectorAll('.mood-btn').forEach((b) => b.classList.remove('selected'));
+  const btn = document.querySelector(`.mood-btn[data-mood="${value}"]`);
+  if (btn) btn.classList.add('selected');
+  const saveBtn = document.getElementById('save-mood-btn');
+  if (saveBtn) saveBtn.disabled = false;
+}
+
+function saveMoodEntry() {
+  if (!selectedMood) return;
+  const note = (document.getElementById('mood-note') || {}).value || '';
+  APP.moodJournal.unshift({
+    id: Date.now(),
+    mood: selectedMood.value,
+    emoji: selectedMood.emoji,
+    note: note.trim(),
+    time: new Date().toISOString(),
+  });
+  if (APP.moodJournal.length > 365) APP.moodJournal = APP.moodJournal.slice(0, 365);
+  saveState();
+  selectedMood = null;
+  closeModal();
+  addHappiness(15, 'Journaled mood');
+  renderMoodJournal();
+}
+
+function renderMoodJournal() {
+  const el = document.getElementById('mood-journal-list');
+  if (!el) return;
+  const recent = APP.moodJournal.slice(0, 7);
+  if (recent.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No mood entries yet. Tap the button above to start journaling.</div></div>';
+    return;
+  }
+  el.innerHTML = recent.map((e) => {
+    const d = new Date(e.time);
+    const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `<div class="mood-entry"><span class="mood-entry-emoji">${e.emoji}</span><div class="mood-entry-info"><div class="mood-entry-date">${dateStr} ${timeStr}</div>${e.note ? '<div class="mood-entry-note">' + escHtml(e.note) + '</div>' : ''}</div></div>`;
+  }).join('');
+
+  const chartEl = document.getElementById('mood-chart');
+  if (chartEl) renderMoodChart(chartEl);
+}
+
+function renderMoodChart(el) {
+  const last7 = APP.moodJournal.slice(0, 7).reverse();
+  if (last7.length < 2) { el.innerHTML = ''; return; }
+  const moodScores = { happy: 5, loved: 5, calm: 4, anxious: 2, sad: 1, angry: 1 };
+  const points = last7.map((e, i) => {
+    const x = (i / (last7.length - 1)) * 280 + 10;
+    const score = moodScores[e.mood] || 3;
+    const y = 60 - (score / 5) * 50 + 5;
+    return { x, y, emoji: e.emoji };
+  });
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+  el.innerHTML = `<svg viewBox="0 0 300 70" style="width:100%;height:70px"><defs><linearGradient id="mgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="var(--purple)"/><stop offset="100%" stop-color="var(--orange)"/></linearGradient></defs><path d="${path}" fill="none" stroke="url(#mgrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${points.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--orange)"/><text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10">${p.emoji}</text>`).join('')}</svg>`;
+}
+
+/* ── Gratitude Exchange ── */
+function openGratitudePrompt() {
+  showModal('Daily Gratitude', `
+    <div class="card-subtitle" style="margin-bottom:12px">Share 3 things you're grateful for today</div>
+    <div class="input-group"><label>1.</label><input id="grat-1" class="input-field" placeholder="I'm grateful for..."></div>
+    <div class="input-group"><label>2.</label><input id="grat-2" class="input-field" placeholder="I'm grateful for..."></div>
+    <div class="input-group"><label>3.</label><input id="grat-3" class="input-field" placeholder="I'm grateful for..."></div>
+    <button class="btn btn-love" onclick="saveGratitude()">Save Gratitude</button>
+  `);
+}
+
+function saveGratitude() {
+  const items = [1, 2, 3].map((i) => (document.getElementById('grat-' + i) || {}).value || '').filter((v) => v.trim());
+  if (items.length === 0) return alert('Please enter at least one gratitude');
+  APP.gratitudes.unshift({ id: Date.now(), items, time: new Date().toISOString() });
+  if (APP.gratitudes.length > 90) APP.gratitudes = APP.gratitudes.slice(0, 90);
+  saveState();
+  closeModal();
+  addHappiness(25, 'Wrote daily gratitude');
+  renderGratitudes();
+}
+
+function renderGratitudes() {
+  const el = document.getElementById('gratitude-list');
+  if (!el) return;
+  const recent = APP.gratitudes.slice(0, 5);
+  if (recent.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No gratitude entries yet</div></div>';
+    return;
+  }
+  el.innerHTML = recent.map((g) => {
+    const d = new Date(g.time);
+    const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `<div class="gratitude-entry"><div class="gratitude-date">${dateStr}</div><ul class="gratitude-items">${g.items.map((it) => '<li>' + escHtml(it) + '</li>').join('')}</ul></div>`;
+  }).join('');
+}
+
+/* ── Photo Memories ── */
+function openPhotoMemory() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('Photo must be under 2MB'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      showModal('Add Memory', `
+        <div style="text-align:center;margin-bottom:12px"><img src="${ev.target.result}" style="max-width:100%;max-height:200px;border-radius:12px" alt="Memory"></div>
+        <div class="input-group"><label>Caption</label><input id="photo-caption" class="input-field" placeholder="What's this memory?"></div>
+        <button class="btn btn-primary" onclick="savePhotoMemory()">Save Memory</button>
+      `);
+      DB.save('pendingPhoto', ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function savePhotoMemory() {
+  const caption = (document.getElementById('photo-caption') || {}).value || '';
+  const photo = DB.load('pendingPhoto', '');
+  if (!photo) return;
+  const memories = DB.load('photoMemories', []);
+  memories.unshift({ id: Date.now(), photo, caption: caption.trim(), time: new Date().toISOString() });
+  if (memories.length > 20) memories.pop();
+  DB.save('photoMemories', memories);
+  try { localStorage.removeItem('uc_pendingPhoto'); } catch {}
+  closeModal();
+  addHappiness(20, 'Added photo memory');
+  renderPhotoMemories();
+}
+
+function renderPhotoMemories() {
+  const el = document.getElementById('photo-memories');
+  if (!el) return;
+  const memories = DB.load('photoMemories', []);
+  if (memories.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No photo memories yet</div></div>';
+    return;
+  }
+  el.innerHTML = '<div class="photo-grid">' + memories.slice(0, 6).map((m) =>
+    `<div class="photo-thumb" onclick="viewPhotoMemory(${m.id})"><img src="${m.photo}" alt="${escAttr(m.caption || 'Memory')}" loading="lazy"><div class="photo-caption-overlay">${escHtml(m.caption || '')}</div></div>`
+  ).join('') + '</div>';
+}
+
+function viewPhotoMemory(id) {
+  const memories = DB.load('photoMemories', []);
+  const m = memories.find((p) => p.id === id);
+  if (!m) return;
+  const d = new Date(m.time);
+  showModal('Memory', `
+    <div style="text-align:center"><img src="${m.photo}" style="max-width:100%;max-height:300px;border-radius:12px" alt="Memory"></div>
+    ${m.caption ? '<div style="text-align:center;margin-top:12px;font-size:1.1rem">' + escHtml(m.caption) + '</div>' : ''}
+    <div style="text-align:center;margin-top:8px" class="card-subtitle">${d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+    <button class="btn btn-secondary" style="margin-top:12px;color:var(--danger)" onclick="deletePhotoMemory(${id})">Delete Memory</button>
+  `);
+}
+
+function deletePhotoMemory(id) {
+  const memories = DB.load('photoMemories', []).filter((m) => m.id !== id);
+  DB.save('photoMemories', memories);
+  closeModal();
+  renderPhotoMemories();
+}
+
+/* ── Love Language Quiz ── */
+const LOVE_LANGUAGES = [
+  { key: 'words', name: 'Words of Affirmation', icon: '\u{1F4AC}', prompts: ['Tell them something you admire about them', 'Write a love note today', 'Send a sweet text right now'] },
+  { key: 'acts', name: 'Acts of Service', icon: '\u{1F91D}', prompts: ['Do one chore they usually handle', 'Make them coffee or tea', 'Handle dinner tonight'] },
+  { key: 'gifts', name: 'Receiving Gifts', icon: '\u{1F381}', prompts: ['Pick up their favorite snack', 'Leave a small surprise note', 'Plan a thoughtful date'] },
+  { key: 'time', name: 'Quality Time', icon: '\u{231A}', prompts: ['Put phones away for 30 minutes together', 'Go for a walk together', 'Play a game or watch something together'] },
+  { key: 'touch', name: 'Physical Touch', icon: '\u{1F917}', prompts: ['Give a long hug right now', 'Hold hands today', 'Offer a back rub'] },
+];
+
+function openLoveLanguageQuiz() {
+  const questions = [
+    { q: 'I feel most loved when my partner...', a: [
+      { text: 'Tells me they love me', lang: 'words' },
+      { text: 'Does something helpful for me', lang: 'acts' },
+      { text: 'Gives me a thoughtful gift', lang: 'gifts' },
+      { text: 'Spends undivided time with me', lang: 'time' },
+      { text: 'Holds me or touches me', lang: 'touch' },
+    ]},
+    { q: 'After a hard day, I most want...', a: [
+      { text: 'To hear encouraging words', lang: 'words' },
+      { text: 'Help with my responsibilities', lang: 'acts' },
+      { text: 'A surprise to cheer me up', lang: 'gifts' },
+      { text: 'Quality time to unwind together', lang: 'time' },
+      { text: 'A big warm hug', lang: 'touch' },
+    ]},
+    { q: 'I feel most connected when we...', a: [
+      { text: 'Have a deep conversation', lang: 'words' },
+      { text: 'Work on something together', lang: 'acts' },
+      { text: 'Exchange meaningful gifts', lang: 'gifts' },
+      { text: 'Go on an adventure together', lang: 'time' },
+      { text: 'Are physically close', lang: 'touch' },
+    ]},
+  ];
+  APP._quizAnswers = {};
+  APP._quizStep = 0;
+  APP._quizQuestions = questions;
+  showQuizQuestion(0);
+}
+
+function showQuizQuestion(idx) {
+  const q = APP._quizQuestions[idx];
+  if (!q) { finishQuiz(); return; }
+  const answers = q.a.map((a, i) =>
+    `<button class="btn btn-secondary quiz-answer" onclick="answerQuiz(${idx},${i},'${a.lang}')" style="text-align:left;margin-bottom:8px;width:100%">${escHtml(a.text)}</button>`
+  ).join('');
+  showModal(`Question ${idx + 1} of ${APP._quizQuestions.length}`, `
+    <div style="font-size:1.05rem;margin-bottom:16px">${escHtml(q.q)}</div>
+    ${answers}
+  `);
+}
+
+function answerQuiz(qIdx, aIdx, lang) {
+  APP._quizAnswers[lang] = (APP._quizAnswers[lang] || 0) + 1;
+  showQuizQuestion(qIdx + 1);
+}
+
+function finishQuiz() {
+  const scores = APP._quizAnswers || {};
+  let topLang = 'words', topScore = 0;
+  for (const [lang, score] of Object.entries(scores)) {
+    if (score > topScore) { topScore = score; topLang = lang; }
+  }
+  APP.loveLanguage = topLang;
+  saveState();
+  const ll = LOVE_LANGUAGES.find((l) => l.key === topLang);
+  showModal('Your Love Language', `
+    <div style="text-align:center;margin-bottom:16px"><span style="font-size:3rem">${ll.icon}</span><div style="font-size:1.3rem;font-weight:700;margin-top:8px">${escHtml(ll.name)}</div></div>
+    <div class="card-subtitle" style="text-align:center;margin-bottom:12px">Try this today:</div>
+    <div style="text-align:center;font-size:1.05rem;color:var(--orange)">${escHtml(ll.prompts[Math.floor(Math.random() * ll.prompts.length)])}</div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="closeModal()">Got it!</button>
+  `);
+  addHappiness(30, 'Took love language quiz');
+}
+
+function getLoveLanguagePrompt() {
+  if (!APP.loveLanguage) return null;
+  const ll = LOVE_LANGUAGES.find((l) => l.key === APP.loveLanguage);
+  if (!ll) return null;
+  return { name: ll.name, icon: ll.icon, prompt: ll.prompts[Math.floor(Math.random() * ll.prompts.length)] };
+}
+
+/* ── Breathing Exercise ── */
+function startBreathingExercise() {
+  APP.breathingActive = true;
+  let phase = 0;
+  const phases = [
+    { label: 'Breathe In', duration: 4000, color: 'var(--purple)' },
+    { label: 'Hold', duration: 7000, color: 'var(--orange)' },
+    { label: 'Breathe Out', duration: 8000, color: 'var(--purple-light)' },
+  ];
+  let cycle = 0;
+  const totalCycles = 3;
+
+  function runPhase() {
+    if (!APP.breathingActive || cycle >= totalCycles) {
+      endBreathingExercise();
+      return;
+    }
+    const p = phases[phase];
+    const el = document.getElementById('breathing-circle');
+    const label = document.getElementById('breathing-label');
+    const counter = document.getElementById('breathing-counter');
+    if (!el) return;
+
+    el.style.background = p.color;
+    el.style.transform = phase === 0 ? 'scale(1.3)' : phase === 2 ? 'scale(0.8)' : 'scale(1.1)';
+    if (label) label.textContent = p.label;
+    if (counter) counter.textContent = `Cycle ${cycle + 1} of ${totalCycles}`;
+
+    phase++;
+    if (phase >= phases.length) { phase = 0; cycle++; }
+    APP._breathTimeout = setTimeout(runPhase, p.duration);
+  }
+
+  switchTab('wellness');
+  const section = document.getElementById('breathing-section');
+  if (section) section.style.display = 'block';
+  runPhase();
+  logActivity('Started breathing exercise');
+}
+
+function endBreathingExercise() {
+  APP.breathingActive = false;
+  if (APP._breathTimeout) clearTimeout(APP._breathTimeout);
+  const section = document.getElementById('breathing-section');
+  if (section) section.style.display = 'none';
+  addHappiness(20, 'Completed breathing exercise');
+}
+
+function stopBreathing() {
+  APP.breathingActive = false;
+  if (APP._breathTimeout) clearTimeout(APP._breathTimeout);
+  const section = document.getElementById('breathing-section');
+  if (section) section.style.display = 'none';
+}
+
+/* ── Hug Request ── */
+function openHugSettings() {
+  showModal('Hug Request Settings', `
+    <div class="input-group"><label>Contact Phone Number</label><input id="hug-contact" class="input-field" type="tel" placeholder="e.g. 3314571282" value="${escAttr(APP.hugContact || '')}"></div>
+    <div class="input-group"><label>Hug Message</label><textarea id="hug-msg" class="input-field" rows="4">${escHtml(APP.hugMessage || DEFAULT_HUG_MESSAGE)}</textarea></div>
+    <button class="btn btn-secondary" onclick="resetHugMessage()" style="margin-bottom:12px">Reset to Default</button>
+    <button class="btn btn-primary" onclick="saveHugSettings()">Save</button>
+  `);
+}
+
+function resetHugMessage() {
+  const el = document.getElementById('hug-msg');
+  if (el) el.value = DEFAULT_HUG_MESSAGE;
+}
+
+function saveHugSettings() {
+  APP.hugContact = (document.getElementById('hug-contact') || {}).value.replace(/\D/g, '') || '';
+  APP.hugMessage = (document.getElementById('hug-msg') || {}).value.trim() || DEFAULT_HUG_MESSAGE;
+  saveState();
+  closeModal();
+  renderHugContact();
+  logActivity('Updated hug request settings');
+}
+
+function sendHugRequest() {
+  if (!APP.hugContact) {
+    openHugSettings();
+    return;
+  }
+  sendSmsViaLink(APP.hugContact, APP.hugMessage || DEFAULT_HUG_MESSAGE);
+  addHappiness(30, 'Sent hug request');
+  Native.hapticImpact('HEAVY');
+}
+
+function renderHugContact() {
+  const el = document.getElementById('hug-contact-display');
+  if (!el) return;
+  if (APP.hugContact) {
+    const formatted = APP.hugContact.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+    el.textContent = formatted;
+  } else {
+    el.textContent = 'No contact set';
+  }
+}
+
+/* ── Weekly Report Card ── */
+function renderWeeklyReport() {
+  const el = document.getElementById('weekly-report');
+  if (!el) return;
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 86400000);
+  const weekKey = weekAgo.toISOString().slice(0, 10);
+
+  const weekMoods = APP.moodJournal.filter((m) => m.time >= weekKey);
+  const weekGratitudes = APP.gratitudes.filter((g) => g.time >= weekKey);
+  const weekActivities = APP.activityLog.filter((a) => a.time >= weekKey);
+  const moodScores = { happy: 5, loved: 5, calm: 4, anxious: 2, sad: 1, angry: 1 };
+  const avgMood = weekMoods.length > 0
+    ? (weekMoods.reduce((s, m) => s + (moodScores[m.mood] || 3), 0) / weekMoods.length).toFixed(1)
+    : '--';
+
+  const medsTaken = weekActivities.filter((a) => a.text.includes('Took ')).length;
+  const lovesSaid = weekActivities.filter((a) => a.text.includes('Said I love you')).length;
+  const checkIns = weekActivities.filter((a) => a.text.includes('check-in')).length;
+
+  el.innerHTML = `
+    <div class="report-grid">
+      <div class="report-item"><div class="report-value">${avgMood}</div><div class="report-label">Avg Mood</div></div>
+      <div class="report-item"><div class="report-value">${weekMoods.length}</div><div class="report-label">Journals</div></div>
+      <div class="report-item"><div class="report-value">${weekGratitudes.length}</div><div class="report-label">Gratitudes</div></div>
+      <div class="report-item"><div class="report-value">${medsTaken}</div><div class="report-label">Meds Taken</div></div>
+      <div class="report-item"><div class="report-value">${lovesSaid}</div><div class="report-label">I Love You's</div></div>
+      <div class="report-item"><div class="report-value">${checkIns}</div><div class="report-label">Check-ins</div></div>
+    </div>`;
+}
+
+/* ── Streak & Badges ── */
+function updateStreak() {
+  const today = todayKey();
+  if (APP.streakData.lastActiveDate === today) return;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+  if (APP.streakData.lastActiveDate === yKey) {
+    APP.streakData.currentStreak++;
+  } else if (APP.streakData.lastActiveDate !== today) {
+    APP.streakData.currentStreak = 1;
+  }
+  APP.streakData.lastActiveDate = today;
+  if (APP.streakData.currentStreak > APP.streakData.longestStreak) {
+    APP.streakData.longestStreak = APP.streakData.currentStreak;
+  }
+  checkMilestones();
+  saveState();
+}
+
+function checkMilestones() {
+  const milestones = [
+    { streak: 3, name: '3-Day Streak', icon: '\u{1F525}' },
+    { streak: 7, name: 'Week Warrior', icon: '\u{1F31F}' },
+    { streak: 14, name: 'Two Week Champion', icon: '\u{1F3C6}' },
+    { streak: 30, name: 'Monthly Master', icon: '\u{1F451}' },
+    { streak: 100, name: 'Century Club', icon: '\u{1F4AF}' },
+  ];
+  const earnedNames = APP.badges.map((b) => b.name);
+  for (const m of milestones) {
+    if (APP.streakData.currentStreak >= m.streak && !earnedNames.includes(m.name)) {
+      APP.badges.push({ name: m.name, icon: m.icon, earned: new Date().toISOString() });
+      addHappiness(50, `Earned badge: ${m.name}`);
+      showConfetti();
+    }
+  }
+  const happinessMilestones = [
+    { points: 500, name: 'Love Apprentice', icon: '\u{1F49C}' },
+    { points: 1000, name: 'Love Master', icon: '\u{1F496}' },
+    { points: 5000, name: 'Unconditional Legend', icon: '\u{267E}\u{FE0F}' },
+  ];
+  for (const m of happinessMilestones) {
+    if (APP.happiness >= m.points && !earnedNames.includes(m.name)) {
+      APP.badges.push({ name: m.name, icon: m.icon, earned: new Date().toISOString() });
+      showConfetti();
+    }
+  }
+}
+
+function renderBadges() {
+  const el = document.getElementById('badges-list');
+  if (!el) return;
+  if (APP.badges.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-text">Keep using the app to earn badges!</div></div>';
+    return;
+  }
+  el.innerHTML = APP.badges.map((b) =>
+    `<div class="badge-item"><span class="badge-icon">${b.icon}</span><span class="badge-name">${escHtml(b.name)}</span></div>`
+  ).join('');
+}
+
+function renderStreakDisplay() {
+  const el = document.getElementById('streak-display');
+  if (!el) return;
+  el.innerHTML = `<span class="streak-fire">\u{1F525}</span> ${APP.streakData.currentStreak} day streak <span class="card-subtitle">(best: ${APP.streakData.longestStreak})</span>`;
+}
+
+function showConfetti() {
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  const colors = ['#7B2FBE', '#FF6B35', '#FFD700', '#FF69B4', '#4ade80'];
+  for (let i = 0; i < 50; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = Math.random() * 0.5 + 's';
+    piece.style.animationDuration = (Math.random() * 1.5 + 1.5) + 's';
+    container.appendChild(piece);
+  }
+  document.body.appendChild(container);
+  setTimeout(() => container.remove(), 3000);
+}
+
+/* ── Theme Toggle ── */
+function toggleTheme() {
+  APP.theme = APP.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(APP.theme);
+  saveState();
+  logActivity('Switched to ' + APP.theme + ' theme');
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.style.setProperty('--bg-primary', '#f5f0ff');
+    document.documentElement.style.setProperty('--bg-secondary', '#ede5ff');
+    document.documentElement.style.setProperty('--bg-card', '#ffffff');
+    document.documentElement.style.setProperty('--bg-input', '#f0ebfa');
+    document.documentElement.style.setProperty('--text-primary', '#1a0a2e');
+    document.documentElement.style.setProperty('--text-secondary', '#4a3570');
+    document.documentElement.style.setProperty('--text-muted', '#8a7aaa');
+    document.documentElement.style.setProperty('--border', 'rgba(123, 47, 190, 0.15)');
+    document.documentElement.style.setProperty('--shadow', '0 4px 20px rgba(0, 0, 0, 0.08)');
+  } else {
+    document.documentElement.style.setProperty('--bg-primary', '#1a0a2e');
+    document.documentElement.style.setProperty('--bg-secondary', '#2d1b4e');
+    document.documentElement.style.setProperty('--bg-card', '#3a2560');
+    document.documentElement.style.setProperty('--bg-input', '#4a3570');
+    document.documentElement.style.setProperty('--text-primary', '#f0e6ff');
+    document.documentElement.style.setProperty('--text-secondary', '#c4b0dd');
+    document.documentElement.style.setProperty('--text-muted', '#8a7aaa');
+    document.documentElement.style.setProperty('--border', 'rgba(123, 47, 190, 0.3)');
+    document.documentElement.style.setProperty('--shadow', '0 4px 20px rgba(0, 0, 0, 0.3)');
+  }
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '\u{2600}\u{FE0F} Light Mode' : '\u{1F319} Dark Mode';
+}
+
+function setAccentColor(color) {
+  APP.accentColor = color;
+  applyAccent(color);
+  saveState();
+}
+
+function applyAccent(color) {
+  const accents = {
+    purple: { main: '#7B2FBE', light: '#9B59D0', dark: '#5A1F8E' },
+    blue: { main: '#2F7BBE', light: '#599DD0', dark: '#1F5A8E' },
+    green: { main: '#2FBE7B', light: '#59D09B', dark: '#1F8E5A' },
+    red: { main: '#BE2F4E', light: '#D0596F', dark: '#8E1F3A' },
+    pink: { main: '#BE2F9B', light: '#D059B4', dark: '#8E1F73' },
+  };
+  const a = accents[color] || accents.purple;
+  document.documentElement.style.setProperty('--purple', a.main);
+  document.documentElement.style.setProperty('--purple-light', a.light);
+  document.documentElement.style.setProperty('--purple-dark', a.dark);
+}
+
 /* ── Manual triggers for testing ── */
 function manualSleepPrompt() { triggerSleepPrompt(); }
 function manualGigiCheck() { triggerGigiCheck(); }
 function manualBedtimeCheck() { triggerBedtimeAngerCheck(); }
 function manualLoveReminder() { triggerBedtimeRoutine(); }
+function manualBreathing() { startBreathingExercise(); }
 function clearAllData() {
   if (!confirm('This will clear all app data. Are you sure?')) return;
   const keysToRemove = [];

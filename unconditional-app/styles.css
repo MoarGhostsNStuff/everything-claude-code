@@ -794,15 +794,15 @@ select.input-field {
 /* Quick Actions */
 .quick-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   margin: 12px 0;
 }
 .quick-action {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 16px;
+  padding: 12px 8px;
   text-align: center;
   cursor: pointer;
   transition: var(--transition);
@@ -867,6 +867,109 @@ select.input-field {
   to { transform: translateY(0); opacity: 1; }
 }
 .animate-in { animation: slide-in 0.4s ease forwards; }
+
+/* Mood Journal */
+.mood-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.mood-btn {
+  background: var(--bg-input); border: 2px solid transparent; border-radius: var(--radius-sm);
+  padding: 12px 8px; cursor: pointer; color: var(--text-primary); transition: var(--transition);
+  text-align: center;
+}
+.mood-btn:hover, .mood-btn.selected { border-color: var(--orange); background: rgba(255, 107, 53, 0.15); }
+.mood-entry { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.mood-entry:last-child { border-bottom: none; }
+.mood-entry-emoji { font-size: 1.5rem; }
+.mood-entry-info { flex: 1; }
+.mood-entry-date { font-size: 0.8rem; color: var(--text-muted); }
+.mood-entry-note { font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px; }
+
+/* Gratitude */
+.gratitude-entry { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.gratitude-entry:last-child { border-bottom: none; }
+.gratitude-date { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+.gratitude-items { padding-left: 20px; margin: 0; }
+.gratitude-items li { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 4px; }
+
+/* Photo Memories */
+.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.photo-thumb {
+  position: relative; border-radius: var(--radius-sm); overflow: hidden;
+  aspect-ratio: 1; cursor: pointer;
+}
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-caption-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  padding: 4px 6px; font-size: 0.7rem; color: white;
+}
+
+/* Breathing Exercise */
+.breathing-card { padding: 32px 16px; }
+.breathing-circle {
+  width: 120px; height: 120px; border-radius: 50%; margin: 0 auto;
+  background: var(--purple); transition: transform 4s ease-in-out, background 1s ease;
+  box-shadow: 0 0 40px rgba(123, 47, 190, 0.4);
+}
+
+/* Hug Card */
+.hug-card { border-left: 3px solid var(--orange); }
+
+/* Weekly Report */
+.report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 0; }
+.report-item { text-align: center; }
+.report-value { font-size: 1.4rem; font-weight: 700; color: var(--orange); }
+.report-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+/* Badges */
+.badge-item {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  background: var(--bg-input); border-radius: 20px; margin: 4px;
+  font-size: 0.85rem;
+}
+.badge-icon { font-size: 1.2rem; }
+.badge-name { color: var(--text-primary); }
+
+/* Streak */
+.streak-card { border: 1px solid var(--orange); }
+.streak-fire { font-size: 1.3rem; }
+
+/* Accent Picker */
+.accent-picker { display: flex; gap: 10px; }
+.accent-swatch {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: var(--transition);
+}
+.accent-swatch:hover { border-color: var(--text-primary); transform: scale(1.15); }
+
+/* Confetti */
+.confetti-container { position: fixed; inset: 0; z-index: 10000; pointer-events: none; overflow: hidden; }
+.confetti-piece {
+  position: absolute; top: -10px; width: 8px; height: 12px;
+  animation: confetti-fall 2s ease-in forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* Quiz */
+.quiz-answer { transition: var(--transition); }
+.quiz-answer:hover { border-color: var(--orange); }
+
+/* Happiness pop-up */
+.happiness-pop {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, var(--purple), var(--orange));
+  color: white; padding: 16px 24px; border-radius: var(--radius);
+  font-weight: 700; font-size: 1.1rem; z-index: 9998;
+  animation: pop-up 1.5s ease forwards; pointer-events: none;
+}
+@keyframes pop-up {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  80% { opacity: 1; transform: translate(-50%, -70%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -90%) scale(0.8); }
+}
 
 /* Responsive */
 @media (min-width: 768px) {
