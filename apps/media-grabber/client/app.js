@@ -128,7 +128,7 @@ async function onContinue(e) {
   } else if (isDirect) {
     await downloadOnDevice(state.target);
   } else {
-    showError('This link needs extraction (YouTube etc.). Add a Backend URL in ⚙︎ Settings to enable it.');
+    showError('This link needs extraction (YouTube etc.). Add a Backend URL in \u{2699} Settings to enable it.');
   }
 }
 
@@ -296,7 +296,7 @@ async function downloadOnDevice(target) {
     hide(els.status);
     showError(config.backendUrl
       ? (err.message || String(err))
-      : 'This host blocks direct browser downloads (CORS). Add a Backend URL in ⚙︎ Settings to fetch it server-side.');
+      : 'This host blocks direct browser downloads (CORS). Add a Backend URL in \u{2699} Settings to fetch it server-side.');
   } finally {
     state.abort = null;
   }
@@ -348,7 +348,7 @@ function presentResult(file, kind) {
   hide(els.status);
   state.lastFile = file;
   const isVideo = file.type.startsWith('video') || (!file.type.startsWith('audio') && kind === 'video');
-  els.resultIcon.textContent = isVideo ? '🎞️' : '🎵';
+  els.resultIcon.textContent = isVideo ? '\u{1F39E}\u{FE0F}' : '\u{1F3B5}';
   els.resultName.textContent = file.name;
   els.resultHint.textContent = isVideo
     ? `${fmtBytes(file.size)} · Save Video → Photos, or Save to Files`
@@ -396,7 +396,7 @@ function renderHistory() {
   h.forEach((item) => {
     const li = document.createElement('li');
     li.className = 'history-item';
-    li.innerHTML = `<span class="hi-icon">${item.kind === 'audio' ? '🎵' : '🎞️'}</span>
+    li.innerHTML = `<span class="hi-icon">${item.kind === 'audio' ? '\u{1F3B5}' : '\u{1F39E}\u{FE0F}'}</span>
       <span class="hi-name"></span>`;
     li.querySelector('.hi-name').textContent = item.name;
     li.addEventListener('click', () => { els.url.value = item.url; els.grabForm.requestSubmit(); });
@@ -452,7 +452,7 @@ els.testBackend.addEventListener('click', async () => {
     const res = await fetch(base + '/api/health', { mode: 'cors' });
     const j = await res.json();
     els.settingsMsg.textContent = j.ok
-      ? `✓ Connected · yt-dlp ${j.ytdlp}${j.ffmpeg ? ' · ffmpeg ✓' : ' · ⚠ ffmpeg missing'}`
+      ? `\u{2713} Connected \u{00B7} yt-dlp ${j.ytdlp}${j.ffmpeg ? ' \u{00B7} ffmpeg \u{2713}' : ' \u{00B7} \u{26A0} ffmpeg missing'}`
       : '✗ Reachable but yt-dlp is not installed.';
   } catch { els.settingsMsg.textContent = '✗ Could not reach backend.'; }
 });

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Unconditional">
+  <meta name="theme-color" content="#7B2FBE">
+  <meta name="description" content="Love, wellness, and mental health companion">
+  <title>Unconditional</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Splash Screen — 6s cinematic sequence -->
+  <div id="splash">
+    <!-- Animated background particles -->
+    <div class="splash-particles" aria-hidden="true">
+      <div class="particle p1"></div><div class="particle p2"></div>
+      <div class="particle p3"></div><div class="particle p4"></div>
+      <div class="particle p5"></div><div class="particle p6"></div>
+    </div>
+
+    <!-- Logo with heartbeat animation -->
+    <svg class="splash-logo" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#7B2FBE"/>
+          <stop offset="100%" style="stop-color:#FF6B35"/>
+        </linearGradient>
+        <radialGradient id="heartglow" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:0.4"/>
+          <stop offset="100%" style="stop-color:#7B2FBE;stop-opacity:0"/>
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="60" cy="60" r="50" fill="url(#heartglow)"/>
+      <g transform="translate(60,58)" filter="url(#glow)">
+        <path d="M0,-8 C-12,-24 -38,-20 -38,-4 C-38,8 -24,16 0,28 C24,16 38,8 38,-4 C38,-20 12,-24 0,-8 Z" fill="none" stroke="url(#grad1)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M-20,2 C-20,-8 -8,-12 0,0 C8,-12 20,-8 20,2 C20,10 8,16 0,22 C-8,16 -20,10 -20,2 Z" fill="url(#grad1)" opacity="0.7"/>
+        <text x="0" y="6" text-anchor="middle" font-size="16" fill="white" font-weight="bold" opacity="0.95">&infin;</text>
+      </g>
+    </svg>
+
+    <!-- Text sequence container -->
+    <div class="splash-text-stage">
+      <!-- Phase 1: "Hi Angie" — fades in 0.5s-1s, holds 1s, fades out 2s-2.5s -->
+      <div class="splash-text splash-text-angie">Hi Angie &#x1F49A;&#x1FAC0;</div>
+      <!-- Phase 2: "Hi BEAR" — fades in 2s-2.5s (crossfade), holds 1s, fades out 3.5s-4s -->
+      <div class="splash-text splash-text-bear">Hi BEAR &#x1F43B; &#x1F499;</div>
+      <!-- Phase 3: "You are both SO loved" — fades in 4s-4.5s, holds to 6s -->
+      <div class="splash-text splash-text-loved">You are both SO loved</div>
+    </div>
+
+    <!-- "soSOsoSO" background watermark — visible during last 1s (5s-6s) -->
+    <div class="splash-watermark" aria-hidden="true">
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+      <div>soSOsoSOsoSOsoSOsoSOsoSOsoSOsoSO</div>
+    </div>
+
+    <!-- App name at bottom -->
+    <div class="splash-brand">Unconditional</div>
+  </div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="title">
+      <svg width="28" height="28" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="hgrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#7B2FBE"/><stop offset="100%" style="stop-color:#FF6B35"/></linearGradient></defs>
+        <g transform="translate(60,58)">
+          <path d="M-20,2 C-20,-8 -8,-12 0,0 C8,-12 20,-8 20,2 C20,10 8,16 0,22 C-8,16 -20,10 -20,2 Z" fill="url(#hgrad)" opacity="0.8"/>
+          <text x="0" y="6" text-anchor="middle" font-size="16" fill="white" font-weight="bold">&infin;</text>
+        </g>
+      </svg>
+      Unconditional
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" onclick="manualGigiCheck()" title="Gigi Check">&#x1F49C;</button>
+      <button class="header-btn" onclick="switchTab('settings')" title="Settings">&#x2699;&#xFE0F;</button>
+    </div>
+  </header>
+
+  <!-- Happiness Banner -->
+  <div class="happiness-banner">
+    <div>
+      <div class="happiness-label">Happiness Points</div>
+      <div class="happiness-score" id="happiness-score">0</div>
+    </div>
+    <div style="text-align:right">
+      <div class="badge badge-purple">&#x267E;&#xFE0F; Unconditional</div>
+    </div>
+  </div>
+
+  <!-- Countdown Timer (hidden by default) -->
+  <div id="countdown-section" style="display:none;padding:0 16px">
+    <div class="countdown-display">
+      <div class="countdown-time" id="countdown-time">00:00</div>
+      <div class="countdown-label" id="countdown-label">Countdown active</div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="app-content">
+    <!-- HOME -->
+    <div id="page-home" class="tab-page active">
+      <div class="section-title">Quick Actions</div>
+      <div class="quick-actions">
+        <div class="quick-action" onclick="sendHugRequest()">
+          <div class="quick-action-icon">&#x1FAC2;</div>
+          <div class="quick-action-label">Hug Request</div>
+        </div>
+        <div class="quick-action" onclick="manualLoveReminder()">
+          <div class="quick-action-icon">&#x2764;&#xFE0F;</div>
+          <div class="quick-action-label">Love Reminder</div>
+        </div>
+        <div class="quick-action" onclick="manualGigiCheck()">
+          <div class="quick-action-icon">&#x1F49C;</div>
+          <div class="quick-action-label">Gigi Check</div>
+        </div>
+        <div class="quick-action" onclick="openMoodJournal()">
+          <div class="quick-action-icon">&#x1F4D3;</div>
+          <div class="quick-action-label">Mood Journal</div>
+        </div>
+        <div class="quick-action" onclick="startBreathingExercise()">
+          <div class="quick-action-icon">&#x1F32C;&#xFE0F;</div>
+          <div class="quick-action-label">Breathe</div>
+        </div>
+        <div class="quick-action" onclick="openGratitudePrompt()">
+          <div class="quick-action-icon">&#x1F64F;</div>
+          <div class="quick-action-label">Gratitude</div>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      <div class="card streak-card" style="margin-top:12px">
+        <div id="streak-display" style="font-size:1.1rem;font-weight:700;text-align:center"></div>
+      </div>
+
+      <div class="section-title">Today's Stats</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-value" id="home-med-count">0/0</div>
+          <div class="stat-label">Meds Taken</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="home-sleep-score">0%</div>
+          <div class="stat-label">Sleep Likelihood</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="home-checkins">0</div>
+          <div class="stat-label">Check-ins</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="home-streak">0</div>
+          <div class="stat-label">Day Streak</div>
+        </div>
+      </div>
+
+      <!-- Audio Monitor Status -->
+      <div class="card" style="margin-top:12px">
+        <div class="card-header">
+          <div class="card-title">&#x1F50A; Environment Monitor</div>
+          <button class="btn btn-sm btn-secondary" onclick="toggleAudioMonitor()" id="audio-toggle-btn">Start</button>
+        </div>
+        <div class="audio-status">
+          <div class="audio-dot" id="audio-dot"></div>
+          <span id="audio-status-label">Environment monitor off</span>
+        </div>
+        <div class="card-subtitle" style="margin-top:8px">Monitors ambient sound levels. Activates support when elevated voices are detected.</div>
+      </div>
+
+      <div class="section-title">Recent Activity</div>
+      <div class="card">
+        <div id="activity-log"></div>
+      </div>
+    </div>
+
+    <!-- MEDICATIONS -->
+    <div id="page-medications" class="tab-page">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="section-title" style="margin:0">My Medications</div>
+        <button class="btn btn-sm btn-primary" onclick="openAddMed()">+ Add</button>
+      </div>
+
+      <!-- Progress -->
+      <div class="card" style="padding:12px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span class="card-subtitle">Today's Progress</span>
+          <span class="card-subtitle" id="med-progress-label">0/0 doses</span>
+        </div>
+        <div class="sleep-prediction-bar">
+          <div class="sleep-prediction-fill" id="med-progress" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="med-list"></div>
+    </div>
+
+    <!-- SLEEP -->
+    <div id="page-sleep" class="tab-page">
+      <div class="card">
+        <div class="sleep-status">
+          <div class="sleep-icon" id="sleep-icon">&#x1F60A;</div>
+          <div class="sleep-state" id="sleep-state">Wide Awake</div>
+          <div class="sleep-confidence" id="sleep-confidence">Sleep likelihood: 0%</div>
+          <div class="sleep-prediction-bar">
+            <div class="sleep-prediction-fill" id="sleep-bar" style="width:0%"></div>
+          </div>
+          <div class="card-subtitle" style="margin-top:12px" id="sleep-data-points">Learning data: 0 feedback points</div>
+        </div>
+      </div>
+
+      <div class="section-title">Sleep Actions</div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="manualSleepPrompt()">&#x1F634; Am I Sleeping?</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-love" onclick="triggerBedtimeRoutine()">&#x2764;&#xFE0F; Bedtime Routine</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="requestMotionPermission()">&#x1F4F1; Enable Motion</button>
+      </div>
+
+      <div class="section-title">How It Works</div>
+      <div class="card">
+        <div class="card-subtitle" style="line-height:1.8">
+          &#x1F4F1; <strong>Motion Detection</strong> &mdash; Tracks phone movement to detect stillness<br>
+          &#x1F319; <strong>Time Awareness</strong> &mdash; Factors in nighttime hours<br>
+          &#x1F4CA; <strong>Learning System</strong> &mdash; Gets more accurate with your feedback<br>
+          &#x23F0; <strong>Pattern Recognition</strong> &mdash; Learns your typical bedtime<br>
+          &#x1F504; <strong>Self-Improving</strong> &mdash; Confidence grows with each data point
+        </div>
+      </div>
+
+      <div class="section-title">Sleep Log</div>
+      <div class="card" id="sleep-log-display">
+        <div class="empty-state"><div class="empty-state-text">No sleep data yet. Use the app to build your profile.</div></div>
+      </div>
+    </div>
+
+    <!-- WELLNESS -->
+    <div id="page-wellness" class="tab-page">
+      <div class="section-title">Wellness Check-ins</div>
+
+      <div class="card gigi-card">
+        <div class="card-header">
+          <div class="card-title">&#x1F49C; Gigi's Wellness</div>
+          <div class="badge badge-orange">3x Daily</div>
+        </div>
+        <div class="card-subtitle">Check-ins at 10 AM, 7 PM, and Midnight</div>
+        <div class="card-subtitle" style="margin-top:4px">"Mental Health above all else"</div>
+        <div class="btn-group">
+          <button class="btn btn-love btn-sm" onclick="manualGigiCheck()">Check Now</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F31C; Bedtime Anger Check</div>
+          <div class="badge badge-purple">Auto</div>
+        </div>
+        <div class="card-subtitle">When sleep is detected, asks if you or Angie are going to bed angry.</div>
+        <div class="btn-group">
+          <button class="btn btn-secondary btn-sm" onclick="manualBedtimeCheck()">Test Now</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x2764;&#xFE0F; Love Reminders</div>
+          <div class="badge badge-green">Active</div>
+        </div>
+        <div class="card-subtitle">Reminds you to say "I love you" before bed, with text messages to your loved ones.</div>
+        <div class="btn-group">
+          <button class="btn btn-love btn-sm" onclick="triggerBedtimeRoutine()">Send Now</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F50A; Harmony Monitor</div>
+        </div>
+        <div class="card-subtitle">
+          When enabled, monitors ambient audio levels. If elevated voices are detected, automatically plays
+          Mac Miller &mdash; "First Day of My Life" and sends supportive messages to your contacts.
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-secondary btn-sm" onclick="toggleAudioMonitor()">Toggle Monitor</button>
+        </div>
+      </div>
+
+      <!-- Hug Request -->
+      <div class="card hug-card">
+        <div class="card-header">
+          <div class="card-title">&#x1FAC2; Hug Request</div>
+          <button class="btn btn-sm btn-secondary" onclick="openHugSettings()">&#x2699;&#xFE0F;</button>
+        </div>
+        <div class="card-subtitle">Send a loving hug request text. Contact: <span id="hug-contact-display">No contact set</span></div>
+        <div class="btn-group">
+          <button class="btn btn-love btn-sm" onclick="sendHugRequest()">Send Hug Request</button>
+        </div>
+      </div>
+
+      <!-- Breathing Exercise -->
+      <div id="breathing-section" style="display:none">
+        <div class="card breathing-card">
+          <div style="text-align:center">
+            <div id="breathing-circle" class="breathing-circle"></div>
+            <div id="breathing-label" style="font-size:1.3rem;font-weight:700;margin-top:16px">Breathe In</div>
+            <div id="breathing-counter" class="card-subtitle" style="margin-top:8px">Cycle 1 of 3</div>
+            <button class="btn btn-secondary btn-sm" onclick="stopBreathing()" style="margin-top:12px">Stop</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mood Journal -->
+      <div class="section-title">Mood Journal</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F4D3; Recent Moods</div>
+          <button class="btn btn-sm btn-primary" onclick="openMoodJournal()">+ Entry</button>
+        </div>
+        <div id="mood-chart" style="margin:8px 0"></div>
+        <div id="mood-journal-list"></div>
+      </div>
+
+      <!-- Gratitude -->
+      <div class="section-title">Gratitude</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F64F; Daily Gratitude</div>
+          <button class="btn btn-sm btn-primary" onclick="openGratitudePrompt()">+ Add</button>
+        </div>
+        <div id="gratitude-list"></div>
+      </div>
+
+      <!-- Photo Memories -->
+      <div class="section-title">Photo Memories</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F4F7; Our Memories</div>
+          <button class="btn btn-sm btn-primary" onclick="openPhotoMemory()">+ Photo</button>
+        </div>
+        <div id="photo-memories"></div>
+      </div>
+
+      <!-- Love Language -->
+      <div class="section-title">Love Language</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F495; Love Language</div>
+        </div>
+        <div class="card-subtitle">Discover your love language and get personalized prompts</div>
+        <div class="btn-group">
+          <button class="btn btn-love btn-sm" onclick="openLoveLanguageQuiz()">Take Quiz</button>
+        </div>
+      </div>
+
+      <!-- Weekly Report Card -->
+      <div class="section-title">Weekly Report</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#x1F4CA; This Week</div>
+        </div>
+        <div id="weekly-report"></div>
+      </div>
+
+      <!-- Badges -->
+      <div class="section-title">Badges &amp; Milestones</div>
+      <div class="card">
+        <div id="badges-list"></div>
+      </div>
+
+      <div class="section-title">Happiness History</div>
+      <div class="card">
+        <div style="text-align:center;padding:12px">
+          <div class="stat-value" id="wellness-happiness">0</div>
+          <div class="stat-label">Total Happiness Points</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="tab-page">
+      <div class="section-title">Sleep Detection</div>
+      <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Sleep Detection</div>
+            <div class="toggle-desc">Uses motion &amp; time to predict sleep</div>
+          </div>
+          <div class="toggle" id="toggle-sleep-detection" onclick="toggleSetting('sleepDetection','toggle-sleep-detection')"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Sleep Prompt</div>
+            <div class="toggle-desc">"Are you about to sleep?" with countdown</div>
+          </div>
+          <div class="toggle" id="toggle-sleep-prompt" onclick="toggleSetting('sleepPrompt','toggle-sleep-prompt')"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Bedtime Anger Check</div>
+            <div class="toggle-desc">Ask about going to bed angry</div>
+          </div>
+          <div class="toggle" id="toggle-anger-check" onclick="toggleSetting('bedtimeAngerCheck','toggle-anger-check')"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Notifications</div>
+      <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Medication Reminders</div>
+            <div class="toggle-desc">Get reminded at scheduled times</div>
+          </div>
+          <div class="toggle" id="toggle-med-reminders" onclick="toggleSetting('medReminders','toggle-med-reminders')"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Mental Health Check-ins</div>
+            <div class="toggle-desc">Gigi check-ins at 10am, 7pm, midnight</div>
+          </div>
+          <div class="toggle" id="toggle-mental-health" onclick="toggleSetting('mentalHealthCheckins','toggle-mental-health')"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Love &amp; Relationship</div>
+      <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Audio Environment Monitor</div>
+            <div class="toggle-desc">Monitor for elevated voices</div>
+          </div>
+          <div class="toggle" id="toggle-audio-monitor" onclick="toggleSetting('audioMonitor','toggle-audio-monitor')"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Gigi Check-ins</div>
+            <div class="toggle-desc">How is Gigi feeling?</div>
+          </div>
+          <div class="toggle" id="toggle-gigi-checkins" onclick="toggleSetting('gigiCheckins','toggle-gigi-checkins')"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Smoochie Reminder</div>
+            <div class="toggle-desc">Bedtime text to (331) number</div>
+          </div>
+          <div class="toggle" id="toggle-smoochie" onclick="toggleSetting('smoochieReminder','toggle-smoochie')"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Love Contract Reminder</div>
+            <div class="toggle-desc">Bedtime text to (206) number</div>
+          </div>
+          <div class="toggle" id="toggle-love-contract" onclick="toggleSetting('loveContractReminder','toggle-love-contract')"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Appearance</div>
+      <div class="card">
+        <button class="btn btn-secondary" id="theme-toggle-btn" onclick="toggleTheme()" style="margin-bottom:12px">&#x2600;&#xFE0F; Light Mode</button>
+        <div class="card-subtitle" style="margin-bottom:8px">Accent Color</div>
+        <div class="accent-picker">
+          <button class="accent-swatch" style="background:#7B2FBE" onclick="setAccentColor('purple')"></button>
+          <button class="accent-swatch" style="background:#2F7BBE" onclick="setAccentColor('blue')"></button>
+          <button class="accent-swatch" style="background:#2FBE7B" onclick="setAccentColor('green')"></button>
+          <button class="accent-swatch" style="background:#BE2F4E" onclick="setAccentColor('red')"></button>
+          <button class="accent-swatch" style="background:#BE2F9B" onclick="setAccentColor('pink')"></button>
+        </div>
+      </div>
+
+      <div class="section-title">Data</div>
+      <div class="card">
+        <button class="btn btn-secondary" onclick="clearAllData()" style="color:var(--danger)">&#x1F5D1; Clear All Data</button>
+      </div>
+
+      <div class="section-title">About</div>
+      <div class="card" style="text-align:center">
+        <svg width="48" height="48" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:8px">
+          <defs><linearGradient id="agrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#7B2FBE"/><stop offset="100%" style="stop-color:#FF6B35"/></linearGradient></defs>
+          <g transform="translate(60,58)">
+            <path d="M-20,2 C-20,-8 -8,-12 0,0 C8,-12 20,-8 20,2 C20,10 8,16 0,22 C-8,16 -20,10 -20,2 Z" fill="url(#agrad)" opacity="0.8"/>
+            <text x="0" y="6" text-anchor="middle" font-size="16" fill="white" font-weight="bold">&infin;</text>
+          </g>
+        </svg>
+        <div style="font-weight:700;font-size:1.1rem;margin-bottom:4px">Unconditional</div>
+        <div class="card-subtitle">Love, Wellness &amp; Mental Health Companion</div>
+        <div class="card-subtitle" style="margin-top:4px">Version 1.0.0</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="home">
+      <span class="nav-icon">&#x1F3E0;</span>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" data-tab="medications">
+      <span class="nav-icon">&#x1F48A;</span>
+      <span>Meds</span>
+    </button>
+    <button class="nav-item" data-tab="sleep">
+      <span class="nav-icon">&#x1F319;</span>
+      <span>Sleep</span>
+    </button>
+    <button class="nav-item" data-tab="wellness">
+      <span class="nav-icon">&#x1F49C;</span>
+      <span>Wellness</span>
+    </button>
+    <button class="nav-item" data-tab="settings">
+      <span class="nav-icon">&#x2699;&#xFE0F;</span>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal"></div>
+  </div>
+
+  <!-- Prompt Overlay -->
+  <div id="prompt-overlay" class="modal-overlay" style="align-items:center">
+    <div id="prompt-container" style="width:90%;max-width:400px"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

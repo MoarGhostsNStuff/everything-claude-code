@@ -49,7 +49,7 @@ tells Render exactly what to build, so there's nothing to configure.
 1. Click the button → sign in to Render (free) → **Apply** the blueprint.
 2. When it's live, open the `https://…onrender.com` URL on your iPhone in Safari.
 3. **Share → Add to Home Screen.** That icon is your app.
-4. First launch only: ⚙︎ Settings → **Backend URL** = that same `onrender.com`
+4. First launch only: Settings (gear icon) → **Backend URL** = that same `onrender.com`
    address → **Test** → **Done**. (It's both the app *and* its backend.)
 
 > Free Render instances sleep when idle — the first request after a nap takes
@@ -76,7 +76,7 @@ https://moarghostsnstuff.github.io/everything-claude-code/
 ```
 
 Add that to your Home Screen for instant **direct-link** downloads with no
-backend. For streaming sites, set the Render Backend URL in ⚙︎ Settings.
+backend. For streaming sites, set the Render Backend URL in Settings (gear icon).
 
 ---
 
