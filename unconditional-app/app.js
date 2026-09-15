@@ -1,5 +1,175 @@
 /* Unconditional - Love, Wellness & Mental Health Companion */
 
+/* ── Capacitor Native Bridge ── */
+const Native = {
+  isNative: typeof window.Capacitor !== 'undefined',
+  plugins: {},
+
+  async init() {
+    if (!this.isNative) return;
+    const { Capacitor } = window;
+    const { registerPlugin } = Capacitor;
+
+    try { this.plugins.StatusBar = registerPlugin('StatusBar'); } catch {}
+    try { this.plugins.SplashScreen = registerPlugin('SplashScreen'); } catch {}
+    try { this.plugins.Haptics = registerPlugin('Haptics'); } catch {}
+    try { this.plugins.LocalNotifications = registerPlugin('LocalNotifications'); } catch {}
+    try { this.plugins.Motion = registerPlugin('Motion'); } catch {}
+    try { this.plugins.App = registerPlugin('App'); } catch {}
+    try { this.plugins.Share = registerPlugin('Share'); } catch {}
+    try { this.plugins.PushNotifications = registerPlugin('PushNotifications'); } catch {}
+
+    this.configureStatusBar();
+    this.setupAppListeners();
+    this.requestNotificationPermissions();
+  },
+
+  async configureStatusBar() {
+    const sb = this.plugins.StatusBar;
+    if (!sb) return;
+    try {
+      await sb.setStyle({ style: 'DARK' });
+      await sb.setBackgroundColor({ color: '#1a0a2e' });
+    } catch {}
+  },
+
+  async hideSplash() {
+    const sp = this.plugins.SplashScreen;
+    if (!sp) return;
+    try { await sp.hide(); } catch {}
+  },
+
+  setupAppListeners() {
+    const app = this.plugins.App;
+    if (!app) return;
+    app.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        renderAll();
+        checkScheduledEvents();
+      }
+    });
+    app.addListener('backButton', () => {
+      const overlay = document.getElementById('modal-overlay');
+      if (overlay && overlay.classList.contains('show')) {
+        closeModal();
+      } else if (APP.currentTab !== 'home') {
+        switchTab('home');
+      }
+    });
+  },
+
+  async requestNotificationPermissions() {
+    const ln = this.plugins.LocalNotifications;
+    if (!ln) return;
+    try {
+      const { display } = await ln.checkPermissions();
+      if (display === 'prompt') await ln.requestPermissions();
+    } catch {}
+  },
+
+  async scheduleNotification(id, title, body, atDate, data) {
+    const ln = this.plugins.LocalNotifications;
+    if (!ln) return false;
+    try {
+      await ln.schedule({
+        notifications: [{
+          id,
+          title,
+          body,
+          schedule: { at: atDate, allowWhileIdle: true },
+          extra: data || {},
+          channelId: 'unconditional',
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#7B2FBE',
+          sound: 'notification.wav',
+        }],
+      });
+      return true;
+    } catch { return false; }
+  },
+
+  async cancelNotification(id) {
+    const ln = this.plugins.LocalNotifications;
+    if (!ln) return;
+    try { await ln.cancel({ notifications: [{ id }] }); } catch {}
+  },
+
+  async hapticImpact(style) {
+    const h = this.plugins.Haptics;
+    if (!h) return;
+    try { await h.impact({ style: style || 'MEDIUM' }); } catch {}
+  },
+
+  async hapticNotification(type) {
+    const h = this.plugins.Haptics;
+    if (!h) return;
+    try { await h.notification({ type: type || 'SUCCESS' }); } catch {}
+  },
+
+  async startNativeMotion() {
+    const m = this.plugins.Motion;
+    if (!m) return false;
+    try {
+      await m.addListener('accel', (event) => {
+        const acc = event.acceleration;
+        if (!acc) return;
+        const magnitude = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
+        APP.motionData.push({ t: Date.now(), m: magnitude });
+        if (APP.motionData.length > 3600) APP.motionData = APP.motionData.slice(-3600);
+      });
+      return true;
+    } catch { return false; }
+  },
+
+  async shareApp() {
+    const s = this.plugins.Share;
+    if (!s) return;
+    try {
+      await s.share({
+        title: 'Unconditional',
+        text: 'Love, Wellness & Mental Health Companion',
+        url: 'https://unconditional.app',
+        dialogTitle: 'Share Unconditional',
+      });
+    } catch {}
+  },
+
+  async scheduleMedReminder(med, timeStr, today) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const at = new Date();
+    at.setHours(h, m, 0, 0);
+    if (at <= new Date()) at.setDate(at.getDate() + 1);
+    const id = med.id * 100 + h * 60 + m;
+    return this.scheduleNotification(
+      id,
+      'Medication Reminder',
+      `Time to take ${med.name} (${med.dosage})`,
+      at,
+      { type: 'med-reminder', medId: med.id }
+    );
+  },
+
+  async scheduleCheckinReminders() {
+    const times = [
+      { h: 10, m: 0, label: 'morning' },
+      { h: 19, m: 0, label: 'evening' },
+      { h: 0, m: 0, label: 'midnight' },
+    ];
+    for (const t of times) {
+      const at = new Date();
+      at.setHours(t.h, t.m, 0, 0);
+      if (at <= new Date()) at.setDate(at.getDate() + 1);
+      await this.scheduleNotification(
+        9000 + t.h,
+        'Mental Health Check-in',
+        'How is Gigi feeling? Time for a wellness check.',
+        at,
+        { type: 'gigi-check' }
+      );
+    }
+  },
+};
+
 const APP = {
   happiness: 0,
   medications: [],
@@ -39,7 +209,7 @@ const DB = {
 };
 
 /* ── Init ── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   loadState();
   renderAll();
   setupNavigation();
@@ -47,11 +217,31 @@ document.addEventListener('DOMContentLoaded', () => {
   requestNotificationPermission();
   startScheduledChecks();
   startMotionDetection();
+
+  await Native.init();
+  if (Native.isNative) {
+    Native.scheduleCheckinReminders();
+    scheduleMedNotifications();
+  }
+
   setTimeout(() => {
     const splash = document.getElementById('splash');
     if (splash) splash.classList.add('hide');
+    Native.hideSplash();
   }, 6200);
 });
+
+function scheduleMedNotifications() {
+  if (!Native.isNative) return;
+  const today = todayKey();
+  APP.medications.filter((m) => m.active).forEach((med) => {
+    med.times.forEach((t) => {
+      if (!(med.taken[today] || []).includes(t)) {
+        Native.scheduleMedReminder(med, t, today);
+      }
+    });
+  });
+}
 
 function loadState() {
   APP.happiness = DB.load('happiness', 0);
@@ -111,6 +301,12 @@ function requestNotificationPermission() {
 }
 
 function showNotification(title, body, data) {
+  if (Native.isNative) {
+    const id = Math.floor(Math.random() * 100000);
+    const at = new Date(Date.now() + 500);
+    Native.scheduleNotification(id, title, body, at, data);
+    return;
+  }
   let sentNative = false;
   if ('Notification' in window && Notification.permission === 'granted') {
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -207,6 +403,7 @@ function addHappiness(amount, reason) {
   APP.happiness += amount;
   saveState();
   renderHappiness();
+  Native.hapticImpact('HEAVY');
   const pop = document.createElement('div');
   pop.className = 'happiness-pop';
   pop.textContent = `+${amount} Happiness \u{1F499}\u{1F60C}\u{1F49A}\u{267E}\u{FE0F}`;
@@ -260,6 +457,7 @@ function toggleMedTaken(id) {
   } else {
     med.taken[today].push(closest);
     addHappiness(10, `Took ${med.name}`);
+    Native.hapticNotification('SUCCESS');
   }
   saveState();
   renderMedications();
@@ -353,13 +551,19 @@ function nextDoseLabel(med, takenToday) {
 }
 
 /* ── Sleep Detection ── */
-function startMotionDetection() {
+async function startMotionDetection() {
   if (!APP.settings.sleepDetection) return;
-  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-    // iOS 13+ requires permission
+  let nativeStarted = false;
+  if (Native.isNative) {
+    nativeStarted = await Native.startNativeMotion();
   }
-  if ('DeviceMotionEvent' in window) {
-    window.addEventListener('devicemotion', handleMotionEvent, { passive: true });
+  if (!nativeStarted) {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      // iOS 13+ requires permission — triggered by user gesture via requestMotionPermission()
+    }
+    if ('DeviceMotionEvent' in window) {
+      window.addEventListener('devicemotion', handleMotionEvent, { passive: true });
+    }
   }
   APP.sleepIntervalId = setInterval(analyzeSleepLikelihood, 60000);
 }
@@ -677,14 +881,20 @@ function updateAudioDot(active) {
 /* ── SMS ── */
 function sendSmsViaLink(number, message) {
   const encoded = encodeURIComponent(message);
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isIOS = Native.isNative || /iPad|iPhone|iPod/.test(navigator.userAgent);
   const separator = isIOS ? '&' : '?';
-  const link = document.createElement('a');
-  link.href = `sms:${number}${separator}body=${encoded}`;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  setTimeout(() => link.remove(), 100);
+  const smsUrl = `sms:${number}${separator}body=${encoded}`;
+
+  if (Native.isNative && Native.plugins.App) {
+    Native.plugins.App.openUrl({ url: smsUrl });
+  } else {
+    const link = document.createElement('a');
+    link.href = smsUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => link.remove(), 100);
+  }
   logActivity(`SMS prepared for ${number.slice(0, 3)}***`);
 }
 

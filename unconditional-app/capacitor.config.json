@@ -3,11 +3,13 @@
   "appName": "Unconditional",
   "webDir": ".",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 2000,
+      "launchShowDuration": 0,
+      "launchAutoHide": false,
       "backgroundColor": "#1a0a2e",
       "showSpinner": false,
       "androidScaleType": "CENTER_CROP",
@@ -16,7 +18,8 @@
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#1a0a2e"
+      "backgroundColor": "#1a0a2e",
+      "overlaysWebView": false
     },
     "LocalNotifications": {
       "smallIcon": "ic_stat_icon",
@@ -25,12 +28,16 @@
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "Motion": {
+      "accelUpdateInterval": 100
     }
   },
   "ios": {
     "contentInset": "automatic",
     "backgroundColor": "#1a0a2e",
     "scheme": "Unconditional",
-    "preferredContentMode": "mobile"
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false
   }
 }
